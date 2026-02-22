@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Хүргэлтийн Систем</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans', sans-serif; background: #f4f6fb; min-height: 100vh; color: #1a2332; }
+
+    .nav { background:#fff; border-bottom:1px solid #e2e8f0; padding:0 24px; display:flex; align-items:center; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+    .nav-logo { font-size:16px; font-weight:700; color:#2d4b9e; padding:16px 0; margin-right:32px; display:flex; align-items:center; gap:8px; }
+    .nav-btn { padding:18px 20px; border:none; background:none; font-size:13.5px; font-weight:600; color:#6b7a8d; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.18s; display:flex; align-items:center; gap:7px; font-family:inherit; }
+    .nav-btn:hover { color:#2d4b9e; }
+    .nav-btn.active { color:#2d4b9e; border-bottom-color:#2d4b9e; }
+
+    .page { display:none; }
+    .page.active { display:block; }
+
+    /* ORDERS */
+    .orders-header { background:#fff; border-bottom:1px solid #e8ecf2; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+    .date-nav { display:flex; align-items:center; gap:8px; }
+    .date-nav-btn { width:30px; height:30px; border-radius:8px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-size:16px; color:#6b7a8d; display:flex; align-items:center; justify-content:center; }
+    .date-label { display:flex; align-items:center; gap:7px; font-size:14px; font-weight:600; padding:6px 14px; border:1px solid #e2e8f0; border-radius:8px; }
+    .btn-today { padding:7px 16px; border-radius:8px; border:none; background:#2d4b9e; color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-new { padding:9px 20px; border-radius:10px; border:none; background:#2d4b9e; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:7px; box-shadow:0 4px 12px rgba(91,33,182,0.3); transition:all 0.18s; }
+    .btn-new:hover { background:#1e3a8a; }
+
+    /* CIRCLES */
+    .status-circles { background:#fff; border-bottom:1px solid #e8ecf2; padding:14px 24px; display:flex; gap:4px; overflow-x:auto; }
+    .circle-item { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; min-width:70px; padding:6px; border-radius:10px; transition:background 0.15s; }
+    .circle-item:hover { background:#f4f6fb; }
+    .circle-ring { width:44px; height:44px; border-radius:50%; border:2.5px solid #e2e8f0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; background:#fff; position:relative; transition:all 0.2s; }
+    .circle-item.active .circle-ring { border-width:3px; }
+    .circle-dot { width:7px; height:7px; border-radius:50%; position:absolute; top:1px; right:3px; }
+    .circle-label { font-size:11px; font-weight:500; color:#6b7a8d; text-align:center; line-height:1.3; white-space:nowrap; }
+    .circle-item.active .circle-label { font-weight:700; }
+
+    .c-all      { color:#1a2332; } .c-all .circle-ring      { border-color:#1a2332; }
+    .c-info     { color:#6366f1; } .c-info .circle-ring     { border-color:#6366f1; }
+    .c-transit  { color:#3b82f6; } .c-transit .circle-ring  { border-color:#3b82f6; }
+    .c-done     { color:#22c55e; } .c-done .circle-ring     { border-color:#22c55e; }
+    .c-partial  { color:#f59e0b; } .c-partial .circle-ring  { border-color:#f59e0b; }
+    .c-fail     { color:#ef4444; } .c-fail .circle-ring     { border-color:#ef4444; }
+    .c-waiting  { color:#8b5cf6; } .c-waiting .circle-ring  { border-color:#8b5cf6; }
+    .c-return   { color:#f97316; } .c-return .circle-ring   { border-color:#f97316; }
+    .c-unassign { color:#94a3b8; } .c-unassign .circle-ring { border-color:#94a3b8; }
+    .c-assigned { color:#8b5cf6; } .c-assigned .circle-ring { border-color:#8b5cf6; }
+
+    /* Inactive rings gray */
+    .circle-item:not(.active) .circle-ring { border-color:#e2e8f0; color:#94a3b8; }
+    .rp-btn { padding:7px 14px; border-radius:8px; border:1.5px solid #e2e8f0; background:#fff; font-size:13px; font-weight:600; color:#6b7a8d; cursor:pointer; font-family:inherit; }
+    .rp-btn:hover { border-color:#2d4b9e; color:#2d4b9e; }
+    .rp-btn.active { background:#2d4b9e; color:#fff; border-color:#2d4b9e; }
+    .rp-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.06); text-align:center; }
+    .rp-card-n { font-size:28px; font-weight:800; color:#1a2332; }
+    .rp-card-l { font-size:12px; color:#8a96a8; margin-top:4px; font-weight:600; }
+    .rp-tbl { width:100%; border-collapse:collapse; }
+    .rp-tbl th { padding:10px 18px; text-align:left; font-size:12px; font-weight:700; color:#8a96a8; background:#f8f9fc; }
+    .rp-tbl td { padding:11px 18px; font-size:13px; border-top:1px solid #f0f3f9; color:#1a2332; }
+    .rp-tbl tr:hover td { background:#f8f9fc; }
+    .rp-bar-wrap { display:flex; align-items:center; gap:8px; }
+    .rp-bar { height:8px; border-radius:4px; background:#2d4b9e; min-width:4px; max-width:160px; }
+    .rp-pct { font-size:12px; color:#8a96a8; white-space:nowrap; }
+
+    /* FILTERS */
+    .filters-bar { padding:12px 24px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .search-wrap { position:relative; flex:1; min-width:200px; }
+    .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:13px; pointer-events:none; }
+    .filter-input { width:100%; padding:8px 14px 8px 34px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:13px; font-family:inherit; outline:none; background:#fff; color:#1a2332; }
+    .filter-input:focus { border-color:#2d4b9e; }
+    .filter-select { padding:8px 30px 8px 10px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:13px; font-family:inherit; outline:none; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7a8d' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 9px center; color:#1a2332; cursor:pointer; appearance:none; }
+    .filter-select:focus { border-color:#2d4b9e; }
+
+    /* BULK BAR */
+    .bulk-bar { display:none; background:#1a2332; color:#fff; padding:12px 24px; align-items:center; gap:14px; font-size:13.5px; font-weight:600; }
+    .bulk-bar.show { display:flex; }
+    .bulk-select { padding:7px 30px 7px 10px; border-radius:8px; border:none; font-size:13px; font-family:inherit; cursor:pointer; appearance:none; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7a8d' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 9px center; color:#1a2332; min-width:180px; }
+    .btn-assign { padding:7px 18px; border-radius:8px; border:none; background:#2d4b9e; color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-cancel-sel { padding:7px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.3); background:transparent; color:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; margin-left:auto; }
+
+    /* TABLE */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; background:#fff; }
+    thead th { background:#f8f9fc; padding:11px 14px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#8a96a8; border-bottom:1px solid #e8ecf2; white-space:nowrap; }
+    tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid #f0f4f8; color:#2d3a4a; vertical-align:middle; }
+    tbody tr:hover { background:#fafbfe; }
+    tbody tr.sel-row { background:#f3f0ff; }
+    tbody tr:last-child td { border-bottom:none; }
+    input[type=checkbox] { width:16px; height:16px; accent-color:#2d4b9e; cursor:pointer; }
+
+    .dist-badge { display:inline-block; padding:3px 10px; border-radius:20px; background:#e8f0fe; color:#3d5cf5; font-size:12px; font-weight:600; }
+    .driver-chip { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; }
+    .driver-av { width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#2d4b9e,#3d5cb5); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+    .status-sel { padding:5px 26px 5px 10px; border-radius:20px; border:none; font-size:12px; font-weight:700; cursor:pointer; appearance:none; font-family:inherit; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='%236b7a8d' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 7px center; outline:none; }
+    .s-info     { background:#ede9fe; color:#2d4b9e; }
+    .s-transit  { background:#dbeafe; color:#1d4ed8; }
+    .s-done     { background:#dcfce7; color:#15803d; }
+    .s-partial  { background:#fef9c3; color:#92400e; }
+    .s-fail     { background:#fee2e2; color:#b91c1c; }
+    .s-waiting  { background:#f3e8ff; color:#6d28d9; }
+    .s-return   { background:#ffedd5; color:#c2410c; }
+    .s-pending  { background:#f1f5f9; color:#475569; }
+    .s-assigned { background:#ede9fe; color:#2d4b9e; }
+
+    .empty { text-align:center; padding:60px; color:#aab3c0; }
+    .empty div { font-size:40px; margin-bottom:12px; }
+    .tfoot-info { padding:12px 24px; font-size:13px; color:#8a96a8; background:#fff; border-top:1px solid #f0f4f8; }
+
+    /* TOAST */
+    .toast { position:fixed; bottom:24px; right:24px; background:#1a2332; color:#fff; padding:13px 20px; border-radius:12px; font-size:14px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,0.2); z-index:9999; display:none; align-items:center; gap:10px; }
+    .toast.show { display:flex; animation:slideUp 0.3s ease; }
+    .toast.green { background:#15803d; }
+    .toast.red   { background:#ef4444; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);} }
+
+    /* FORM */
+    .form-wrap { padding:32px 16px 60px; }
+    .form-inner { max-width:560px; margin:0 auto; }
+    .ph { margin-bottom:24px; }
+    .ph h1 { font-size:24px; font-weight:700; }
+    .ph p  { font-size:13.5px; color:#8a96a8; margin-top:5px; }
+    .card { background:#fff; border-radius:16px; padding:24px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+    .st { font-size:11px; font-weight:700; letter-spacing:0.08em; color:#6b7a8d; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+    .lbl { font-size:13.5px; font-weight:600; color:#2d3a4a; margin-bottom:7px; display:block; }
+    .lbl .r { color:#e85454; }
+    .lbl .o { color:#aab3c0; font-weight:400; font-size:12px; }
+    .fi { width:100%; padding:11px 14px; border:1.5px solid #dde3ec; border-radius:10px; background:#fff; font-size:14px; color:#1a2332; outline:none; transition:border-color 0.2s; font-family:inherit; }
+    .fi:focus { border-color:#2d4b9e; box-shadow:0 0 0 3px rgba(91,33,182,0.1); }
+    .fi::placeholder { color:#aab3c0; }
+    .sw { position:relative; }
+    .sw::after { content:"▾"; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:13px; color:#8a96a8; pointer-events:none; }
+    select.fi { appearance:none; cursor:pointer; padding-right:36px; }
+    textarea.fi { resize:vertical; }
+    .r2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media(max-width:500px){.r2{grid-template-columns:1fr;}}
+    .tg { display:flex; gap:10px; }
+    .tb { flex:1; padding:11px 14px; border-radius:10px; border:1.5px solid #dde3ec; background:#fff; font-size:13.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.18s; color:#6b7a8d; font-family:inherit; }
+    .tb.active { border-color:#2d4b9e; background:#f3f0ff; color:#2d4b9e; }
+    .af { background:#f7f9fc; border:1.5px dashed #c8d0db; border-radius:10px; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:#6b7a8d; }
+    .ab { font-size:10px; font-weight:700; color:#8a96a8; background:#eaecf0; padding:3px 8px; border-radius:6px; }
+    .lw { font-size:12.5px; color:#d44c1a; font-weight:500; margin-top:7px; display:flex; align-items:center; gap:5px; }
+    .fa { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+    .bc { padding:13px 28px; border-radius:12px; border:1.5px solid #dde3ec; background:#fff; font-size:14px; font-weight:600; color:#6b7a8d; cursor:pointer; display:flex; align-items:center; gap:8px; font-family:inherit; }
+    .bs { padding:13px 32px; border-radius:12px; border:none; background:linear-gradient(135deg,#2d4b9e,#3d5cb5); font-size:14px; font-weight:700; color:#fff; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 16px rgba(91,33,182,0.35); transition:all 0.18s; font-family:inherit; }
+    .bs:disabled { opacity:0.7; cursor:not-allowed; }
+    .bs.ok { background:linear-gradient(135deg,#22c55e,#16a34a); }
+  </style>
+</head>
+<body>
+
+<!-- ===== STAFF LOGIN ===== -->
+<div id="staffLogin" style="display:none;min-height:100vh;background:#f4f6fb;align-items:center;justify-content:center;flex-direction:column;padding:24px">
+  <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA4MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIj4KICA8IS0tIEJveCAtLT4KICA8cmVjdCB4PSIxMiIgeT0iOCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQyIiBmaWxsPSJub25lIiBzdHJva2U9IiMyZDRiOWUiIHN0cm9rZS13aWR0aD0iNSIvPgogIDwhLS0gQm94IHRvcCBub3RjaCAtLT4KICA8cG9seWxpbmUgcG9pbnRzPSIzMCw4IDMwLDIwIDM4LDIwIDM4LDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJkNGI5ZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPCEtLSBCb3ggbGFiZWwgLS0+CiAgPHJlY3QgeD0iMTYiIHk9IjM0IiB3aWR0aD0iMTQiIGhlaWdodD0iMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJkNGI5ZSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPCEtLSBQYWxsZXQgYmFzZSAtLT4KICA8cmVjdCB4PSI2IiB5PSI1MiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJkNGI5ZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPCEtLSBQYWxsZXQgbGVncyAtLT4KICA8cmVjdCB4PSI3IiB5PSI2MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyZDRiOWUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxyZWN0IHg9IjI5IiB5PSI2MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyZDRiOWUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxyZWN0IHg9IjUxIiB5PSI2MCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyZDRiOWUiIHN0cm9rZS13aWR0aD0iNCIvPgo8L3N2Zz4=" width="60" height="60" style="display:block;margin:0 auto 8px">
+  <div style="font-size:28px;font-weight:800;color:#2d4b9e;letter-spacing:2px;margin-bottom:2px">MESO</div>
+  <div style="font-size:14px;color:#8a96a8;margin-bottom:28px">Хүргэлтийн систем</div>
+
+  <!-- Step 1: Утас -->
+  <div id="sl-step-phone" style="background:#fff;border-radius:20px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.09)">
+    <label style="font-size:14px;font-weight:600;color:#2d3a4a;margin-bottom:8px;display:block">Утасны дугаараа оруулна уу</label>
+    <input type="tel" id="sl-ph" placeholder="99001234" maxlength="8"
+      style="width:100%;padding:14px;border:2px solid #dde3ec;border-radius:12px;font-size:22px;text-align:center;letter-spacing:3px;outline:none;font-family:inherit;color:#1a2332;background:#fff"
+      onfocus="this.style.borderColor='#2d4b9e'" onblur="this.style.borderColor='#dde3ec'"/>
+    <button id="sl-btn" onclick="slLogin()"
+      style="display:block;width:100%;margin-top:14px;padding:16px;border-radius:12px;border:none;background:#2d4b9e;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+      Нэвтрэх
+    </button>
+    <div id="sl-err" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:13px;font-weight:600;text-align:center"></div>
+  </div>
+
+  <!-- Step 2: PIN -->
+  <div id="sl-step-pin" style="display:none;background:#fff;border-radius:20px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.09)">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;margin-bottom:8px">&#x1F512;</div>
+      <div style="font-size:15px;font-weight:700;color:#1a2332" id="sl-pin-title"></div>
+      <div style="font-size:13px;color:#8a96a8;margin-top:4px" id="sl-pin-sub"></div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:14px;margin-bottom:24px">
+      <div class="sl-dot" id="sl-pd0"></div>
+      <div class="sl-dot" id="sl-pd1"></div>
+      <div class="sl-dot" id="sl-pd2"></div>
+      <div class="sl-dot" id="sl-pd3"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <button class="sl-np" onclick="slPinInput('1')">1</button>
+      <button class="sl-np" onclick="slPinInput('2')">2</button>
+      <button class="sl-np" onclick="slPinInput('3')">3</button>
+      <button class="sl-np" onclick="slPinInput('4')">4</button>
+      <button class="sl-np" onclick="slPinInput('5')">5</button>
+      <button class="sl-np" onclick="slPinInput('6')">6</button>
+      <button class="sl-np" onclick="slPinInput('7')">7</button>
+      <button class="sl-np" onclick="slPinInput('8')">8</button>
+      <button class="sl-np" onclick="slPinInput('9')">9</button>
+      <button class="sl-np" style="background:transparent;border:none;font-size:14px;color:#6b7a8d" onclick="slBackPhone()">&#x2190; Тухай</button>
+      <button class="sl-np" onclick="slPinInput('0')">0</button>
+      <button class="sl-np" style="color:#b91c1c;border-color:#fee2e2" onclick="slPinDel()">&#x232B;</button>
+    </div>
+    <div id="sl-pin-err" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:13px;font-weight:600;text-align:center"></div>
+    <div id="sl-forgot" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;background:#fff8e1;border:1.5px solid #f59e0b;color:#92400e;font-size:13px;font-weight:600;text-align:center">
+      &#x26A0;&#xFE0F; PIN мартсан бол менежертээ PIN цацлуулан хүсээрэй
+    </div>
+  </div>
+</div>
+
+<style>
+.sl-dot{width:18px;height:18px;border-radius:50%;background:#e2e8f0;transition:all 0.15s}
+.sl-dot.filled{background:#2d4b9e;transform:scale(1.1)}
+.sl-dot.error{background:#ef4444}
+.sl-np{padding:18px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;font-size:22px;font-weight:600;cursor:pointer;font-family:inherit;color:#1a2332;transition:all 0.1s}
+.sl-np:active{background:#ede9fe;border-color:#2d4b9e;transform:scale(0.95)}
+</style>
+
+
+<nav class="nav">
+  <div class="nav-logo">🚚 Хүргэлт</div>
+  <button class="nav-btn" id="nav-orders" onclick="showPage('orders')">📋 Захиалгууд</button>
+  <button class="nav-btn active" id="nav-form" onclick="showPage('form')">➕ Захиалга нэмэх</button>
+  <button class="nav-btn" id="nav-products" onclick="showPage('products')">📦 Бараа</button>
+  <button class="nav-btn" id="nav-staff" onclick="showPage('staff')">👤 Ажилтан</button>
+  <button class="nav-btn" id="nav-report" onclick="showPage('report');loadReport()">📊 Тайлан</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ====== ORDERS ====== -->
+<div class="page" id="page-orders">
+  <div class="orders-header">
+    <div class="date-nav">
+      <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
+      <div class="date-label" onclick="toggleCal()" style="cursor:pointer;user-select:none" title="Дарж өдөр сонгоно">📅 <span id="date-lbl"></span> <span style="font-size:11px;color:#8a96a8;margin-left:2px">▾</span></div>
+      <button class="date-nav-btn" onclick="changeDate(1)">›</button>
+      <button class="btn-today" onclick="goToday()">Өнөөдөр</button>
+    </div>
+    <button class="btn-new" onclick="showPage('form')">+ Шинэ захиалга</button>
+  </div>
+
+  <!-- CALENDAR POPUP -->
+  <div id="cal-popup" style="display:none;position:fixed;z-index:999;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:20px;width:300px;border:1px solid #e2e8f0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <button onclick="calY(-1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:13px;color:#2d4b9e;font-weight:700">‹‹</button>
+      <button onclick="calM(-1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;color:#2d4b9e;font-weight:700">‹</button>
+      <span id="cal-title" style="font-size:14px;font-weight:700;color:#1a2332"></span>
+      <button onclick="calM(1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;color:#2d4b9e;font-weight:700">›</button>
+      <button onclick="calY(1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:13px;color:#2d4b9e;font-weight:700">››</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px">
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Ня</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Да</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Мя</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Лх</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Пү</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Ба</div>
+      <div style="text-align:center;font-size:11px;font-weight:700;color:#8a96a8;padding:3px">Бя</div>
+    </div>
+    <div id="cal-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px"></div>
+  </div>
+
+  <div class="status-circles">
+    <div class="circle-item active c-all" onclick="setCircle('all',this)">
+      <div class="circle-ring"><span id="cn-all">0</span><span class="circle-dot" style="background:#1a2332"></span></div>
+      <span class="circle-label">Бүгд</span>
+    </div>
+    <div class="circle-item c-info" onclick="setCircle('info',this)">
+      <div class="circle-ring"><span id="cn-info">0</span><span class="circle-dot" style="background:#6366f1"></span></div>
+      <span class="circle-label">Мэдээлэл авсан</span>
+    </div>
+    <div class="circle-item c-transit" onclick="setCircle('in_transit',this)">
+      <div class="circle-ring"><span id="cn-transit">0</span><span class="circle-dot" style="background:#3b82f6"></span></div>
+      <span class="circle-label">Явж байна</span>
+    </div>
+    <div class="circle-item c-done" onclick="setCircle('delivered',this)">
+      <div class="circle-ring"><span id="cn-done">0</span><span class="circle-dot" style="background:#22c55e"></span></div>
+      <span class="circle-label">Амжилттай</span>
+    </div>
+    <div class="circle-item c-partial" onclick="setCircle('partial',this)">
+      <div class="circle-ring"><span id="cn-partial">0</span><span class="circle-dot" style="background:#f59e0b"></span></div>
+      <span class="circle-label">Хэсэгчлэн</span>
+    </div>
+    <div class="circle-item c-fail" onclick="setCircle('failed',this)">
+      <div class="circle-ring"><span id="cn-fail">0</span><span class="circle-dot" style="background:#ef4444"></span></div>
+      <span class="circle-label">Амжилтгүй</span>
+    </div>
+    <div class="circle-item c-waiting" onclick="setCircle('pending',this)">
+      <div class="circle-ring"><span id="cn-waiting">0</span><span class="circle-dot" style="background:#8b5cf6"></span></div>
+      <span class="circle-label">Хүлээлтэнд</span>
+    </div>
+    <div class="circle-item c-return" onclick="setCircle('returned',this)">
+      <div class="circle-ring"><span id="cn-return">0</span><span class="circle-dot" style="background:#f97316"></span></div>
+      <span class="circle-label">Буцаалт</span>
+    </div>
+    <div class="circle-item c-unassign" onclick="setCircle('unassigned',this)">
+      <div class="circle-ring"><span id="cn-unassign">0</span><span class="circle-dot" style="background:#94a3b8"></span></div>
+      <span class="circle-label">Хуваарилдаагүй</span>
+    </div>
+    <div class="circle-item c-assigned" onclick="setCircle('assigned',this)">
+      <div class="circle-ring"><span id="cn-assigned">0</span><span class="circle-dot" style="background:#8b5cf6"></span></div>
+      <span class="circle-label">Хуваарилагдсан</span>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="filter-input" id="srch" placeholder="Хайх, бараа, утас хайх..." oninput="filterOrders()"/>
+    </div>
+    <select class="filter-select" id="fd-district" onchange="filterOrders()">
+      <option value="">🏙 Бүх дүүрэг</option>
+      <option>Сонгинохайрхан</option><option>Хан-уул</option><option>Чингэлтэй</option>
+      <option>Баянзүрх</option><option>Баянгол</option><option>Сүхбаатар</option>
+      <option>Орон нутаг</option>
+    </select>
+    <select class="filter-select" id="fd-driver" onchange="filterOrders()">
+      <option value="">🧑‍✈️ Бүх жолооч</option>
+    </select>
+    <select class="filter-select" id="fd-product" onchange="filterOrders()">
+      <option value="">📦 Бүх бараа</option>
+    </select>
+  </div>
+
+  <div class="bulk-bar" id="bulk-bar">
+    <span id="bulk-cnt">0 захиалга сонгогдсон</span>
+    <select class="bulk-select" id="bulk-drv"><option value="">Жолооч сонгох...</option><option value="__unassign__">❌ Хуваарилагдаагүй болгох</option></select>
+    <button class="btn-assign" onclick="bulkAssign()">✓ Хуваарилах</button>
+    <input type="date" id="bulk-date" style="padding:6px 10px;border-radius:8px;border:1.5px solid #c4b5fd;font-size:13px;font-family:inherit;color:#1a2332;background:#fff"/>
+    <button class="btn-assign" style="background:#0369a1" onclick="bulkChangeDate()">Өдөр шилжүүлэх</button>
+    <button class="btn-cancel-sel" onclick="clearSel()">✕ Цуцлах</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px"><input type="checkbox" id="chk-all" onchange="toggleAll(this)"/></th>
+          <th>№</th><th>ХАЯГ</th><th>ДҮҮРЭГ</th><th>БАРААНЫ НЭР</th>
+          <th>УТАС</th><th>ЖОЛООЧ</th><th>СТАТУС</th><th>ШАЛТГААН</th><th>ТАЙЛБАР</th><th>АЖИЛТАН</th>
+        </tr>
+      </thead>
+      <tbody id="otbody">
+        <tr><td colspan="11"><div class="empty"><div>⏳</div><p>Ачаалж байна...</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tfoot-info" id="ocnt"></div>
+</div>
+
+<!-- ====== PRODUCTS PAGE ====== -->
+<div class="page" id="page-products">
+  <div style="max-width:640px;margin:0 auto;padding:32px 16px 60px">
+    <div style="margin-bottom:24px">
+      <h1 style="font-size:24px;font-weight:700">📦 Бараа удирдлага</h1>
+      <p style="font-size:13.5px;color:#8a96a8;margin-top:5px">Бараа нэмэх, харах</p>
+    </div>
+
+    <!-- Нэмэх form -->
+    <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#6b7a8d;margin-bottom:18px">➕ ШИНЭ БАРАА НЭМЭХ</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#6b7a8d;margin-bottom:6px;display:block">БАРААНЫ НЭР <span style="color:#b91c1c">*</span></label>
+          <input class="fi" id="np-base" placeholder="Жишээ: Цасны өмд эрэгтэй загвар" style="width:100%"
+            oninput="updateProductPreview()" onkeydown="if(event.key==='Enter')addProduct()"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#6b7a8d;margin-bottom:6px;display:block">РАЗМЕР</label>
+          <input class="fi" id="np-size" placeholder="Жишээ: M, XL, 36..." style="width:100%"
+            oninput="updateProductPreview()" onkeydown="if(event.key==='Enter')addProduct()"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#6b7a8d;margin-bottom:6px;display:block">ӨНГӨ</label>
+          <input class="fi" id="np-color" placeholder="Жишээ: Хар, Улаан..." style="width:100%"
+            oninput="updateProductPreview()" onkeydown="if(event.key==='Enter')addProduct()"/>
+        </div>
+      </div>
+      <!-- Preview -->
+      <div id="np-preview" style="display:none;margin-bottom:12px;padding:10px 14px;background:#f8f6ff;border-radius:10px;border:1.5px solid #ede9fe">
+        <span style="font-size:11px;font-weight:700;color:#8a96a8;letter-spacing:.05em">БАРАА ХАДГАЛАГДАХ НЭР:</span>
+        <div id="np-preview-name" style="font-size:14px;font-weight:700;color:#2d4b9e;margin-top:4px"></div>
+      </div>
+      <button onclick="addProduct()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+        + Нэмэх
+      </button>
+      <div id="add-product-msg" style="margin-top:10px;font-size:13px;display:none"></div>
+    </div>
+
+    <!-- Жагсаалт (түр хаасан) -->
+    <div id="product-search-mgmt" style="display:none"></div>
+    <div id="product-mgmt-count" style="display:none"></div>
+    <div id="product-mgmt-list" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ====== STAFF PAGE ====== -->
+<div class="page" id="page-staff">
+  <div style="max-width:960px;margin:0 auto;padding:32px 16px 60px">
+    <div style="margin-bottom:24px">
+      <h1 style="font-size:24px;font-weight:700">👥 Хүний нөөц</h1>
+      <p style="font-size:13.5px;color:#8a96a8;margin-top:5px">Ажилтан болон жолооч бүртгэх, харах</p>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;background:#f0f2f7;border-radius:12px;padding:4px;margin-bottom:24px;width:fit-content">
+      <button id="tab-staff-btn" onclick="switchTab('staff')"
+        style="padding:9px 24px;border-radius:9px;border:none;background:#2d4b9e;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s">
+        🧑‍💼 Ажилтан
+      </button>
+      <button id="tab-driver-btn" onclick="switchTab('driver')"
+        style="padding:9px 24px;border-radius:9px;border:none;background:transparent;color:#6b7a8d;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.18s">
+        🚗 Жолооч
+      </button>
+    </div>
+
+    <!-- ===== АЖИЛТАН TAB ===== -->
+    <div id="tab-staff">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <button onclick="toggleStaffForm()" id="btn-toggle-staff-form"
+        style="padding:9px 20px;border-radius:10px;border:none;background:#2d4b9e;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+        + Шинэ ажилтан
+      </button>
+    </div>
+
+    <!-- Нэмэх форм -->
+    <div id="staff-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;border:2px solid #ede9fe">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#6b7a8d;margin-bottom:20px">➕ ШИНЭ АЖИЛТАН БҮРТГЭХ</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Овог</label>
+          <input class="fi" id="sf-lastname" placeholder="Овог..."/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Нэр</label>
+          <input class="fi" id="sf-firstname" placeholder="Нэр..."/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Утасны дугаар</label>
+          <input class="fi" id="sf-phone" placeholder="99001234" maxlength="8"/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ойрын хүний дугаар</label>
+          <input class="fi" id="sf-emergency" placeholder="99001234" maxlength="8"/>
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Гэрийн хаяг</label>
+          <input class="fi" id="sf-address" placeholder="Гэрийн хаяг..."/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ажилд орсон огноо</label>
+          <input class="fi" type="date" id="sf-joindate"/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Үүрэг / Роль</label>
+          <div style="position:relative">
+            <select class="fi" id="sf-role" style="appearance:none;padding-right:36px">
+              <option value="">Сонгох...</option>
+              <option value="operator">Оператор</option>
+              <option value="manager">Менежер</option>
+              <option value="warehouse">Агуулахын ажилтан</option>
+              <option value="accountant">Нябо</option>
+              <option value="other">Бусад</option>
+            </select>
+            <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:11px;color:#8a96a8;pointer-events:none">▾</span>
+          </div>
+        </div>
+      </div>
+      <div id="staff-form-msg" style="display:none;margin-top:12px"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+        <button onclick="toggleStaffForm()" style="padding:11px 24px;border-radius:10px;border:1.5px solid #dde3ec;background:#fff;font-size:14px;font-weight:600;color:#6b7a8d;cursor:pointer;font-family:inherit">
+          Цуцлах
+        </button>
+        <button onclick="saveStaff()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+          Хадгалах
+        </button>
+      </div>
+    </div>
+
+    <!-- Staff жагсаалт -->
+    <div style="background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid #f4f6fb;display:grid;grid-template-columns:2fr 1.4fr 1.1fr 1.1fr 1.1fr 0.7fr 1fr;gap:8px;align-items:center">
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">НЭР</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">УТАС</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ҮҮРЭГ</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ОЙРЫН ХҮН</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ОРСОН ОГНОО</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ЗАХИАЛГА</span>
+        <span></span>
+      </div>
+      <div id="staff-list"></div>
+    </div>
+    <div id="staff-count" style="padding:10px 4px;font-size:13px;color:#8a96a8"></div>
+    </div><!-- /tab-staff -->
+
+    <!-- ===== ЖОЛООЧ TAB ===== -->
+    <div id="tab-driver" style="display:none">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <button onclick="toggleDriverForm()" id="btn-toggle-driver-form"
+          style="padding:9px 20px;border-radius:10px;border:none;background:#2d4b9e;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+          + Шинэ жолооч
+        </button>
+      </div>
+
+      <!-- Жолооч нэмэх форм -->
+      <div id="driver-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;border:2px solid #ede9fe">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#6b7a8d;margin-bottom:20px">🚗 ШИНЭ ЖОЛООЧ БҮРТГЭХ</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Овог</label>
+            <input class="fi" id="df-lastname" placeholder="Овог..."/>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Нэр</label>
+            <input class="fi" id="df-firstname" placeholder="Нэр..."/>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Утасны дугаар</label>
+            <input class="fi" id="df-phone" placeholder="99001234" maxlength="8"/>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ойрын хүний дугаар</label>
+            <input class="fi" id="df-emergency" placeholder="99001234" maxlength="8"/>
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Гэрийн хаяг</label>
+            <input class="fi" id="df-address" placeholder="Гэрийн хаяг..."/>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ажилд орсон огноо</label>
+            <input class="fi" type="date" id="df-joindate"/>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Машины дугаар</label>
+            <input class="fi" id="df-plate" placeholder="УБ 1234АА..."/>
+          </div>
+        </div>
+        <div id="driver-form-msg" style="display:none;margin-top:12px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button onclick="toggleDriverForm()" style="padding:11px 24px;border-radius:10px;border:1.5px solid #dde3ec;background:#fff;font-size:14px;font-weight:600;color:#6b7a8d;cursor:pointer;font-family:inherit">
+            Цуцлах
+          </button>
+          <button onclick="saveDriver()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+            Хадгалах
+          </button>
+        </div>
+      </div>
+
+      <!-- Жолоочийн жагсаалт -->
+      <div style="background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+        <div style="padding:12px 18px;background:#f8f9fc;border-bottom:1px solid #e8ecf2;display:grid;grid-template-columns:2fr 1.2fr 1.2fr 1.2fr 1.2fr 1fr;gap:8px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">НЭР</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">УТАС</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">МАШИН</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ОЙРЫН ХҮН</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ОРСОН ОГНОО</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8">ЗАХИАЛГА</span>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#8a96a8"></span>
+        </div>
+        <div id="driver-list"><div style="text-align:center;padding:40px;color:#aab3c0;font-size:14px">Жолооч бүртгэлгүй байна</div></div>
+      </div>
+      <div id="driver-count" style="padding:12px 18px;font-size:13px;color:#8a96a8;background:#fff;border-top:1px solid #f0f4f8;border-radius:0 0 16px 16px"></div>
+    </div><!-- /tab-driver -->
+
+  </div>
+</div>
+
+<!-- ====== FORM ====== -->
+<div class="page active" id="page-form">
+  <div class="form-wrap"><div class="form-inner">
+    <div class="ph"><h1>Шинэ захиалга бүртгэх</h1><p>Бүх <strong>*</strong> тэмдэгттэй талбарыг заавал бөглөнө</p></div>
+
+    <div class="card">
+      <div class="st">🗓️ ОГНОО &amp; ХУГАЦАА</div>
+      <div class="r2">
+        <div>
+          <label class="lbl">Он сар өдөр <span class="r">*</span></label>
+          <input type="date" class="fi" id="f-date"/>
+          <div class="lw" id="late-w" style="display:none">📍 15:00+ тул маргааш автоматаар тохируулагдлаа</div>
+        </div>
+        <div>
+          <label class="lbl">Захиалгын эх сурвалж <span class="r">*</span></label>
+          <div class="tg">
+            <button class="tb active" id="btn-phone" onclick="setSrc('phone')">📞 Утас</button>
+            <button class="tb" id="btn-chat" onclick="setSrc('chat')">💬 Чат</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="st">📦 БАРААНЫ МЭДЭЭЛЭЛ</div>
+      <div style="margin-bottom:14px;position:relative" id="product-wrap">
+        <label class="lbl">Барааны нэр <span class="r">*</span></label>
+        <input class="fi" id="f-product-search" placeholder="Барааны нэр хайх..." autocomplete="off"
+          oninput="searchProduct(this.value)" onfocus="showProductDropdown()" style="padding-right:36px"/>
+        <span id="f-product-clear" onclick="clearProduct()" style="display:none;position:absolute;right:12px;top:37px;cursor:pointer;color:#aab3c0;font-size:18px;line-height:1">✕</span>
+        <input type="hidden" id="f-product"/>
+        <div id="product-dropdown" style="display:none;position:absolute;z-index:200;width:100%;background:#fff;border:1.5px solid #2d4b9e;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:280px;overflow-y:auto;margin-top:4px">
+          <div id="product-list"></div>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Тодорхойлолт <span class="o">( заавал биш)</span></label>
+        <textarea class="fi" id="f-note" rows="3" placeholder="Нэмэлт мэдээлэл..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="st">📍 ХҮРГЭЛТИЙН ХАЯГ</div>
+      <div style="margin-bottom:14px">
+        <label class="lbl">Хаяг <span class="r">*</span></label>
+        <input class="fi" id="f-address" placeholder="Дэлгэрэнгүй хаяг бичнэ үү..."/>
+      </div>
+      <div class="r2">
+        <div>
+          <label class="lbl">Дүүрэг <span class="r">*</span></label>
+          <div class="sw">
+            <select class="fi" id="f-dist">
+              <option value="">Дүүрэг сонгох...</option>
+              <option>Сонгинохайрхан</option><option>Хан-уул</option><option>Чингэлтэй</option>
+              <option>Баянзүрх</option><option>Баянгол</option><option>Сүхбаатар</option>
+              <option>Орон нутаг</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Утасны дугаар <span class="r">*</span></label>
+          <input class="fi" id="f-phone" placeholder="99001234" maxlength="8"/>
+        </div>
+      </div>
+    </div>
+
+    <input type="hidden" id="f-staff" value=""/>
+    <input type="hidden" id="f-driver" value=""/>
+
+    <div class="card">
+      <div class="st">🤖 АВТОМАТ МЭДЭЭЛЭЛ</div>
+      <div class="r2">
+        <div>
+          <label class="lbl">Захиалгын ID</label>
+          <div class="af"><span id="auto-id" style="color:#bbc3ce">—</span><span class="ab">АВТОМАТ</span></div>
+        </div>
+        <div>
+          <label class="lbl">Timestamp <span class="o">(Улаанбаатар)</span></label>
+          <div class="af"><span id="auto-ts" style="font-size:13px"></span><span class="ab">АВТОМАТ</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fa">
+      <button class="bc" onclick="clearForm()">↺ Цэвэрлэх</button>
+      <button class="bs" id="btn-sub" onclick="submitOrder()">Захиалга хадгалах →</button>
+    </div>
+  </div></div>
+</div>
+
+<script>
+const {createClient} = supabase;
+const sb = createClient(
+  'https://lgnjvltiqtnhpqdvpihq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE'
+);
+
+let src='phone', allOrders=[], filtered=[], selIds=new Set(), circleF='all', curDate=new Date(), drivers=[];
+
+const SM = {
+  info:       {label:'Мэдээлэл авсан', cls:'s-info'},
+  pending:    {label:'Хүлээлтэнд',     cls:'s-waiting'},
+  assigned:   {label:'Хуваарилагдсан', cls:'s-assigned'},
+  in_transit: {label:'Явж байна',       cls:'s-transit'},
+  delivered:  {label:'Амжилттай',       cls:'s-done'},
+  partial:    {label:'Хэсэгчлэн',       cls:'s-partial'},
+  failed:     {label:'Амжилтгүй',        cls:'s-fail'},
+  returned:   {label:'Буцаалт',         cls:'s-return'},
+  cancelled:  {label:'Цуцалсан',        cls:'s-fail'},
+};
+
+window.onload = async () => {
+  initDate(); initTs();
+  await loadDD();
+  await loadStaff();
+};
+
+function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDate(d){
+  const days=['Ня','Да','Мя','Лх','Пү','Ба','Бя'];
+  const months=['1-р','2-р','3-р','4-р','5-р','6-р','7-р','8-р','9-р','10-р','11-р','12-р'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} сар ${d.getFullYear()}`;
+}
+function changeDate(n){ curDate=new Date(curDate.getTime()+n*86400000); document.getElementById('date-lbl').textContent=fmtDate(curDate); loadOrders(); }
+function goToday(){ curDate=new Date(); document.getElementById('date-lbl').textContent=fmtDate(curDate); closeCal(); loadOrders(); }
+
+// CALENDAR
+let calView=new Date();
+let calOpen=false;
+function toggleCal(){
+  calOpen=!calOpen;
+  const pop=document.getElementById('cal-popup');
+  if(calOpen){
+    calView=new Date(curDate);
+    renderCal();
+    // Position below date label
+    const lbl=document.querySelector('.date-label');
+    const rect=lbl.getBoundingClientRect();
+    pop.style.top=(rect.bottom+6)+'px';
+    pop.style.left=rect.left+'px';
+    pop.style.display='block';
+  } else {
+    pop.style.display='none';
+  }
+}
+function closeCal(){ calOpen=false; document.getElementById('cal-popup').style.display='none'; }
+document.addEventListener('click',function(e){
+  if(calOpen && !e.target.closest('#cal-popup') && !e.target.closest('.date-label')) closeCal();
+});
+function calM(n){ calView=new Date(calView.getFullYear(), calView.getMonth()+n, 1); renderCal(); }
+function calY(n){ calView=new Date(calView.getFullYear()+n, calView.getMonth(), 1); renderCal(); }
+function renderCal(){
+  const months=['1-р сар','2-р сар','3-р сар','4-р сар','5-р сар','6-р сар','7-р сар','8-р сар','9-р сар','10-р сар','11-р сар','12-р сар'];
+  document.getElementById('cal-title').textContent=`${calView.getFullYear()} он, ${months[calView.getMonth()]}`;
+  const grid=document.getElementById('cal-days');
+  const y=calView.getFullYear(), m=calView.getMonth();
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const selected=new Date(curDate); selected.setHours(0,0,0,0);
+  let html='';
+  for(let i=0;i<firstDay;i++) html+=`<div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dt=new Date(y,m,d);
+    const isToday=dt.getTime()===today.getTime();
+    const isSel=dt.getTime()===selected.getTime();
+    const style=isSel
+      ? 'background:#2d4b9e;color:#fff;border-radius:8px;font-weight:700;'
+      : isToday
+        ? 'background:#f3f0ff;color:#2d4b9e;border-radius:8px;font-weight:700;border:1.5px solid #2d4b9e;'
+        : 'border-radius:8px;color:#2d3a4a;';
+    html+=`<div onclick="pickDay(${y},${m},${d})" style="text-align:center;padding:7px 2px;font-size:13px;cursor:pointer;${style}" onmouseover="if(!${isSel})this.style.background='#f4f6fb'" onmouseout="if(!${isSel})this.style.background='${isToday?'#f3f0ff':'transparent'}'}">${d}</div>`;
+  }
+  grid.innerHTML=html;
+}
+function pickDay(y,m,d){
+  curDate=new Date(y,m,d);
+  document.getElementById('date-lbl').textContent=fmtDate(curDate);
+  closeCal();
+  loadOrders();
+}
+function initDate(){
+  const now=new Date(), late=now.getHours()>=15;
+  const t=late?new Date(now.getTime()+86400000):now;
+  document.getElementById('f-date').value=toISO(t);
+  if(late) document.getElementById('late-w').style.display='flex';
+}
+function initTs(){
+  const n=new Date();
+  document.getElementById('auto-ts').textContent=
+    n.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'})+', '+
+    n.toLocaleTimeString('mn-MN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+
+// All products cache
+let allProducts=[];
+let recentProducts=JSON.parse(localStorage.getItem('recentProducts')||'[]');
+
+async function loadDD(){
+  const [pR,stR,drR]=await Promise.all([
+    sb.from('products').select('id,name').order('name').limit(10000),
+    sb.from('staff').select('id,name').order('name'),
+    sb.from('drivers').select('id,name,phone,status').order('name'),
+  ]);
+  if(pR.error||stR.error||drR.error){showToast('❌ RLS асуудал. fix-rls.sql ажиллуулна уу.','red');return;}
+
+  allProducts=pR.data||[];
+  drivers=drR.data||[];
+
+  const addOpts=(selId,arr)=>{ const s=document.getElementById(selId); if(!s||s.tagName!=='SELECT') return; arr.forEach(x=>{const o=new Option(x.name,x.id);s.add(o);}); };
+  addOpts('f-staff',stR.data||[]);
+  addOpts('bulk-drv',drivers);
+
+  const fd=document.getElementById('fd-driver');
+  drivers.forEach(d=>{const o=new Option(d.name,d.name);fd.add(o);});
+  const fp=document.getElementById('fd-product');
+  allProducts.forEach(p=>{const o=new Option(p.name,p.name);fp.add(o);});
+}
+
+// PRODUCT SEARCH
+function getRecent(){
+  // Return last 12 recently used products that exist in allProducts
+  return recentProducts
+    .map(name=>allProducts.find(p=>p.name===name))
+    .filter(Boolean)
+    .slice(0,12);
+}
+
+function saveRecent(name){
+  recentProducts=recentProducts.filter(n=>n!==name);
+  recentProducts.unshift(name);
+  recentProducts=recentProducts.slice(0,20);
+  localStorage.setItem('recentProducts',JSON.stringify(recentProducts));
+}
+
+function showProductDropdown(){
+  const val=document.getElementById('f-product-search').value.trim();
+  if(!val) renderProductList(getRecent(), true);
+  else searchProduct(val);
+}
+
+function searchProduct(val){
+  if(!val.trim()){
+    renderProductList(getRecent(), true);
+    return;
+  }
+  const q=val.toLowerCase();
+  // " тэмдэгтийг хасаж эхнээс хайна
+  const clean=s=>s.replace(/^["'\s]+/,'').toLowerCase();
+  const startsWith=allProducts.filter(p=>clean(p.name).startsWith(q));
+  const wordStarts=q.length>1?allProducts.filter(p=>!clean(p.name).startsWith(q)&&clean(p.name).split(' ').some(w=>w.startsWith(q))):[];
+  const contains=q.length>1?allProducts.filter(p=>!clean(p.name).startsWith(q)&&!clean(p.name).split(' ').some(w=>w.startsWith(q))&&clean(p.name).includes(q)):[];
+  const results=[...startsWith,...wordStarts,...contains].slice(0,20);
+  renderProductList(results, false);
+}
+
+function renderProductList(items, isRecent){
+  const dd=document.getElementById('product-dropdown');
+  const list=document.getElementById('product-list');
+  list.innerHTML='';
+  if(!items.length){
+    const em=document.createElement('div');
+    em.style.cssText='padding:16px;text-align:center;color:#aab3c0;font-size:13px';
+    em.textContent='Бараа олдсонгүй';
+    list.appendChild(em);dd.style.display='block';return;
+  }
+  const hdr=document.createElement('div');
+  hdr.style.cssText='padding:10px 14px 6px;font-size:11px;font-weight:700;color:#8a96a8;letter-spacing:0.05em';
+  hdr.textContent=isRecent?'🕐 СҮҮЛД ХЭРГЛЭСЭН':'🔍 ХАЙЛТЫН ҮР ДҮН';
+  list.appendChild(hdr);
+  items.forEach(p=>{
+    const row=document.createElement('div');
+    row.style.cssText='padding:10px 14px;cursor:pointer;font-size:13.5px;color:#1a2332;border-bottom:1px solid #f4f6fb;transition:background 0.1s';
+    row.textContent=p.name;
+    row.onmouseover=function(){this.style.background='#f3f0ff';};
+    row.onmouseout=function(){this.style.background='';};
+    row.onclick=function(){selectProduct(p.id,p.name);};
+    list.appendChild(row);
+  });
+  dd.style.display='block';
+}
+function selectProduct(id, name){
+  document.getElementById('f-product').value=id;
+  document.getElementById('f-product-search').value=name;
+  document.getElementById('f-product-clear').style.display='inline';
+  document.getElementById('product-dropdown').style.display='none';
+  saveRecent(name);
+}
+
+function clearProduct(){
+  document.getElementById('f-product').value='';
+  document.getElementById('f-product-search').value='';
+  document.getElementById('f-product-clear').style.display='none';
+  document.getElementById('product-dropdown').style.display='none';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#product-wrap')){
+    document.getElementById('product-dropdown').style.display='none';
+  }
+});
+
+async function loadOrders(){
+  const {data,error}=await sb.from('orders').select('*').eq('order_date',toISO(curDate)).order('created_at',{ascending:false});
+  if(error){showToast('❌ '+error.message,'red');return;}
+  allOrders=data||[];
+  selIds.clear();
+  updateCircles();
+  filterOrders();
+}
+
+function updateCircles(){
+  document.getElementById('cn-all').textContent=allOrders.length;
+  document.getElementById('cn-info').textContent=allOrders.filter(o=>o.status==='info').length;
+  document.getElementById('cn-transit').textContent=allOrders.filter(o=>o.status==='in_transit').length;
+  document.getElementById('cn-done').textContent=allOrders.filter(o=>o.status==='delivered').length;
+  document.getElementById('cn-partial').textContent=allOrders.filter(o=>o.status==='partial').length;
+  document.getElementById('cn-fail').textContent=allOrders.filter(o=>o.status==='failed').length;
+  document.getElementById('cn-waiting').textContent=allOrders.filter(o=>o.status==='pending').length;
+  document.getElementById('cn-return').textContent=allOrders.filter(o=>o.status==='returned').length;
+  document.getElementById('cn-unassign').textContent=allOrders.filter(o=>!o.driver_id).length;
+  document.getElementById('cn-assigned').textContent=allOrders.filter(o=>!!o.driver_id).length;
+}
+
+function setCircle(val,el){
+  circleF=val;
+  document.querySelectorAll('.circle-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  filterOrders();
+}
+
+function filterOrders(){
+  const s=document.getElementById('srch').value.toLowerCase();
+  const dist=document.getElementById('fd-district').value;
+  const drv=document.getElementById('fd-driver').value;
+  const prod=document.getElementById('fd-product').value;
+
+  filtered=allOrders.filter(o=>{
+    if(circleF!=='all'){
+      if(circleF==='unassigned'&&o.driver_id) return false;
+      if(circleF==='assigned'&&!o.driver_id) return false;
+      if(!['unassigned','assigned'].includes(circleF)&&o.status!==circleF) return false;
+    }
+    if(dist&&o.district!==dist) return false;
+    if(drv&&o.driver_name!==drv) return false;
+    if(prod&&o.product_name!==prod) return false;
+    if(s){
+      const h=[o.address,o.customer_phone,o.product_name,o.order_number,o.driver_name,o.staff_name].filter(Boolean).join(' ').toLowerCase();
+      if(!h.includes(s)) return false;
+    }
+    return true;
+  });
+  renderOrders();
+  document.getElementById('ocnt').textContent=`${filtered.length} захиалга`;
+}
+
+function renderOrders(){
+  const tb=document.getElementById('otbody');
+  if(!filtered.length){tb.innerHTML=`<tr><td colspan="11"><div class="empty"><div>📭</div><p>Захиалга олдсонгүй</p></div></td></tr>`;return;}
+
+  // Утасны дугаараар давхардсан захиалгыг илрүүлэх
+  // allOrders-с тухайн өдрийн бүх захиалгыг авч, утсаар бүлэглэнэ
+  const phoneCount={};
+  allOrders.forEach(o=>{
+    if(!phoneCount[o.customer_phone]) phoneCount[o.customer_phone]=[];
+    phoneCount[o.customer_phone].push(o.id);
+  });
+
+  tb.innerHTML=filtered.map((o,i)=>{
+    const st=SM[o.status]||{label:o.status,cls:'s-pending'};
+    const chk=selIds.has(o.id);
+    const drHtml=o.driver_name
+      ?`<div class="driver-chip"><div class="driver-av">${o.driver_name[0]}</div>${o.driver_name}</div>`
+      :`<span style="color:#aab3c0">—</span>`;
+
+    // Давхардсан эсэхийг шалгах — хэрэв 2 буюу түүнээс олон байвал
+    const phoneGroup=phoneCount[o.customer_phone]||[];
+    const orderIdx=phoneGroup.indexOf(o.id); // created_at-аар эрэмблэгдсэн тул 0 = хамгийн эхний
+    const isDuplicate=phoneGroup.length>1 && orderIdx>0;
+
+    let rowStyle='';
+    let dupBadge='';
+    if(isDuplicate){
+      rowStyle='background:#fff1f1;';
+      dupBadge=`<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:10px;font-weight:700">ДАВХАРДСАН</span>`;
+    }
+
+    return `<tr class="${chk?'sel-row':''}" id="row-${o.id}" style="${rowStyle}">
+      <td><input type="checkbox" ${chk?'checked':''} onchange="toggleRow('${o.id}',this)"/></td>
+      <td style="font-weight:600;color:#6b7a8d">${i+1}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o.address}">${o.address}</td>
+      <td><span class="dist-badge">${o.district}</span></td>
+      <td>${o.product_name||'—'}</td>
+      <td style="font-weight:600">${o.customer_phone}${dupBadge}</td>
+      <td>${drHtml}</td>
+      <td>
+        <select class="status-sel ${st.cls}" onchange="updStatus('${o.id}',this)">
+          ${Object.entries(SM).map(([v,s])=>`<option value="${v}"${o.status===v?' selected':''}>${s.label}</option>`).join('')}
+        </select>
+      </td>
+      <td style="color:#aab3c0">—</td>
+      <td style="color:#aab3c0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note||'—'}</td>
+      <td>${o.staff_name||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleAll(cb){
+  filtered.forEach(o=>{ if(cb.checked) selIds.add(o.id); else selIds.delete(o.id); });
+  renderOrders(); updBulk();
+}
+function toggleRow(id,cb){
+  if(cb.checked) selIds.add(id); else selIds.delete(id);
+  document.getElementById('row-'+id)?.classList.toggle('sel-row',cb.checked);
+  updBulk();
+}
+function clearSel(){ selIds.clear(); document.getElementById('chk-all').checked=false; renderOrders(); updBulk(); }
+function updBulk(){
+  const n=selIds.size;
+  document.getElementById('bulk-cnt').textContent=`${n} захиалга сонгогдсон`;
+  document.getElementById('bulk-bar').classList.toggle('show',n>0);
+}
+
+async function bulkAssign(){
+  const dId=document.getElementById('bulk-drv').value;
+  const dName=document.getElementById('bulk-drv').selectedOptions[0]?.text;
+  if(!dId||dName==='Жолооч сонгох...'){showToast('⚠️ Жолооч сонгоно уу!','red');return;}
+  const ids=[...selIds];
+  if(dId==='__unassign__'){
+    // Хуваарилагдаагүй болгох
+    var _url='https://lgnjvltiqtnhpqdvpihq.supabase.co';
+    var _key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE';
+    var _hdr={'apikey':_key,'Authorization':'Bearer '+_key,'Content-Type':'application/json','Prefer':'return=minimal'};
+    for(var i=0;i<ids.length;i++){
+      await fetch(_url+'/rest/v1/orders?id=eq.'+ids[i],{method:'PATCH',headers:_hdr,body:JSON.stringify({driver_id:null,driver_name:null,status:'info'})});
+    }
+    showToast('✅ '+ids.length+' захиалга хуваарилагдаагүй боллоо!','green');
+    clearSel(); loadOrders(); return;
+  }
+  const {error}=await sb.from('orders').update({driver_id:dId,driver_name:dName,status:'assigned'}).in('id',ids);
+  if(error){showToast('❌ '+error.message,'red');return;}
+  showToast(`✅ ${ids.length} захиалгыг ${dName}-д хуваарилсан!`,'green');
+  clearSel(); loadOrders();
+}
+
+async function updStatus(id,sel){
+  const {error}=await sb.from('orders').update({status:sel.value}).eq('id',id);
+  if(error){showToast('❌ Алдаа!','red');return;}
+  const o=allOrders.find(x=>x.id===id);
+  if(o) o.status=sel.value;
+  const st=SM[sel.value]||{cls:'s-pending'};
+  sel.className=`status-sel ${st.cls}`;
+  updateCircles();
+  showToast('✅ Статус шинэчлэгдлээ!','green');
+}
+async function bulkChangeDate(){
+  var dateVal=document.getElementById('bulk-date').value;
+  if(!dateVal){showToast('Огноо сонгоно уу!','red');return;}
+  var ids=Array.from(selIds);
+  if(!ids.length){showToast('Захиалга сонгохгүй!','red');return;}
+  // Жолооч хуваарилагдсан захиалга байвал анхааруулга
+  var assigned=ids.filter(function(id){var o=allOrders.find(function(x){return x.id==id;});return o&&o.driver_id;});
+  if(assigned.length>0){
+    if(!confirm('⚠️ '+assigned.length+' захиалгад жолооч хуваарилагдсан байна. Өдөр шилжүүлэхэд тэдгээр жолоочийн хуваарилалт цуцлагдана. Үргэлжүүлэх үү?'))return;
+  }
+  var _url='https://lgnjvltiqtnhpqdvpihq.supabase.co';
+  var _key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE';
+  var _hdr={'apikey':_key,'Authorization':'Bearer '+_key,'Content-Type':'application/json','Prefer':'return=minimal'};
+  for(var i=0;i<ids.length;i++){
+    await fetch(_url+'/rest/v1/orders?id=eq.'+ids[i],{method:'PATCH',headers:_hdr,body:JSON.stringify({order_date:dateVal,status:'info',driver_id:null,driver_name:null})});
+  }
+  showToast('✅ '+ids.length+' захиалгын өдрийг шилжүүллээ','green');
+  clearSel();
+  loadOrders();
+}
+
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if(p==='orders'){ curDate=new Date(); document.getElementById('date-lbl').textContent=fmtDate(curDate); loadOrders(); }
+  if(p==='products'){ renderProductMgmt(); }
+  if(p==='staff'){ switchTab('staff'); }
+}
+
+// ============ PRODUCT MANAGEMENT ============
+function buildProductName(){
+  var base=document.getElementById('np-base').value.trim();
+  var size=document.getElementById('np-size').value.trim();
+  var color=document.getElementById('np-color').value.trim();
+  var name=base;
+  if(size) name+='-'+size;
+  if(color) name+='/'+color;
+  return name;
+}
+
+function updateProductPreview(){
+  var name=buildProductName();
+  var prev=document.getElementById('np-preview');
+  var prevName=document.getElementById('np-preview-name');
+  if(name.length>0){
+    prevName.textContent=name;
+    prev.style.display='block';
+  } else {
+    prev.style.display='none';
+  }
+}
+
+async function addProduct(){
+  var name=buildProductName();
+  var msg=document.getElementById('add-product-msg');
+  if(!document.getElementById('np-base').value.trim()){
+    showMsg(msg,'⚠️ Барааны нэр бичнэ үү!','#c07d00','#fff8e1');
+    return;
+  }
+  var exists=allProducts.some(function(p){return p.name.toLowerCase()===name.toLowerCase();});
+  if(exists){
+    showMsg(msg,'⚠️ "Дээрх нэртэй бараа аль хэдийн байна!','#b91c1c','#fee2e2');
+    return;
+  }
+  var res=await sb.from('products').insert({name:name}).select().single();
+  if(res.error){showMsg(msg,'❌ Алдаа: '+res.error.message,'#b91c1c','#fee2e2');return;}
+  allProducts.push(res.data);
+  allProducts.sort(function(a,b){return a.name.localeCompare(b.name,'mn');});
+  var fp=document.getElementById('fd-product');
+  fp.add(new Option(res.data.name,res.data.name));
+  document.getElementById('np-base').value='';
+  document.getElementById('np-size').value='';
+  document.getElementById('np-color').value='';
+  document.getElementById('np-preview').style.display='none';
+  showMsg(msg,'✅ "'+name+'" амжилттай нэмэгдлээ!','#15803d','#dcfce7');
+  renderProductMgmt();
+  showToast('✅ '+name+' нэмэгдлээ','green');
+}
+function showMsg(el,text,color,bg){
+  el.style.display='block';
+  el.style.color=color;
+  el.style.background=bg;
+  el.style.padding='8px 12px';
+  el.style.borderRadius='8px';
+  el.style.fontWeight='600';
+  el.textContent=text;
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+function renderProductMgmt(){
+  const q=(document.getElementById('product-search-mgmt')?.value||'').toLowerCase();
+  const list=document.getElementById('product-mgmt-list');
+  const countEl=document.getElementById('product-mgmt-count');
+  if(!list) return;
+
+  const filtered=allProducts.filter(p=>!q||p.name.toLowerCase().includes(q));
+  countEl.textContent=filtered.length+' бараа';
+
+  if(!filtered.length){
+    list.innerHTML=`<div style="text-align:center;padding:40px;color:#aab3c0;font-size:14px">Бараа олдсонгүй</div>`;
+    return;
+  }
+
+  list.innerHTML=filtered.map((p,i)=>`
+    <div style="padding:12px 18px;border-bottom:1px solid #f4f6fb;display:flex;align-items:center;justify-content:space-between;font-size:13.5px;color:#1a2332">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="color:#c0c8d4;font-size:12px;min-width:28px">${i+1}</span>
+        <span>${p.name}</span>
+      </div>
+    </div>`).join('');
+}
+
+function setSrc(s){
+  src=s;
+  document.getElementById('btn-phone').classList.toggle('active',s==='phone');
+  document.getElementById('btn-chat').classList.toggle('active',s==='chat');
+}
+
+function clearForm(){
+  ['f-product','f-product-search','f-note','f-address','f-dist','f-phone','f-staff','f-driver'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-product-clear').style.display='none';
+  document.getElementById('product-dropdown').style.display='none';
+  document.getElementById('auto-id').textContent='—';
+  document.getElementById('auto-id').style.color='#bbc3ce';
+  setSrc('phone'); initDate();
+}
+
+async function submitOrder(){
+  const pid=document.getElementById('f-product').value;
+  const pname=document.getElementById('f-product-search').value.trim();
+  const note=document.getElementById('f-note').value;
+  const addr=document.getElementById('f-address').value.trim();
+  const dist=document.getElementById('f-dist').value;
+  const phone=document.getElementById('f-phone').value.trim();
+  const stid=null;
+  const stname=null;
+  const drid=document.getElementById('f-driver').value;
+  const drname=drid?document.getElementById('f-driver').selectedOptions[0]?.text:null;
+  // Нэвтэрсэн ажилтны мэдээлэл автоматаар
+  const slSess=JSON.parse(localStorage.getItem('sl_session')||'null');
+  const autoStaffId=slSess?slSess.id:null;
+  const autoStaffName=slSess?slSess.name:null;
+  const odate=document.getElementById('f-date').value;
+
+  if(!pid||!addr||!dist||!phone){showToast('⚠️ Бүх заавал талбарыг бөглөнө үү!','red');return;}
+  if(phone.length<8){showToast('⚠️ Утасны дугаар буруу!','red');return;}
+
+  const btn=document.getElementById('btn-sub');
+  btn.disabled=true; btn.textContent='Хадгалж байна...';
+
+  const {data,error}=await sb.from('orders').insert({
+    order_number:'', order_date:odate, source:src,
+    product_id:pid, product_name:pname==='Барааны нэр сонгох...'?null:pname,
+    note:note||null, address:addr, district:dist, customer_phone:phone,
+    staff_id:autoStaffId, staff_name:autoStaffName,
+    driver_id:drid||null, driver_name:(drname&&drname!=='Жолооч сонгох...')?drname:null,
+    status:drid?'assigned':'info',
+  }).select().single();
+
+  btn.disabled=false;
+  if(error){showToast('❌ '+error.message,'red');btn.textContent='Захиалга хадгалах →';return;}
+
+  document.getElementById('auto-id').textContent=data.order_number;
+  document.getElementById('auto-id').style.color='#1a2332';
+  btn.className='bs ok'; btn.textContent='✓ Хадгалагдлаа!';
+  showToast('✅ '+data.order_number+' амжилттай!','green');
+  setTimeout(()=>{btn.className='bs';btn.textContent='Захиалга хадгалах →';clearForm();},2000);
+}
+
+// ============ STAFF MANAGEMENT ============
+let allStaff=[];
+
+const ROLES={
+  'operator':'Оператор','manager':'Менежер',
+  'warehouse':'Агуулахын ажилтан','accountant':'Нябо','other':'Бусад'
+};
+
+async function loadStaff(){
+  let data, error;
+  try {
+    const r = await fetch('https://lgnjvltiqtnhpqdvpihq.supabase.co/rest/v1/staff?order=created_at.desc', {
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE'
+      }
+    });
+    data = await r.json();
+    if (!Array.isArray(data)) { console.error('loadStaff unexpected:', data); data = []; }
+  } catch(e) { console.error('loadStaff fetch error:', e); data = []; }
+  allStaff=data||[];
+  console.log('allStaff loaded:', allStaff.length, allStaff.map(s=>s.name));
+  // Refresh staff dropdown in form (only real SELECT elements)
+  const stSel=document.getElementById('f-staff');
+  if(stSel && stSel.tagName==='SELECT'){
+    stSel.innerHTML='<option value="">Ажилтан сонгох...</option>';
+    allStaff.forEach(s=>{ stSel.appendChild(new Option(s.name||'—', s.id)); });
+  }
+  renderStaffList();
+}
+
+function toggleStaffForm(){
+  const wrap=document.getElementById('staff-form-wrap');
+  const isHidden=wrap.style.display==='none';
+  wrap.style.display=isHidden?'block':'none';
+  if(isHidden){
+    document.getElementById('sf-firstname').focus();
+    // Set today as default join date
+    const today=new Date();
+    document.getElementById('sf-joindate').value=toISO(today);
+  } else {
+    clearStaffForm();
+  }
+}
+
+function clearStaffForm(){
+  ['sf-lastname','sf-firstname','sf-phone','sf-emergency','sf-address','sf-joindate','sf-role']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+async function saveStaff(){
+  const lastname =document.getElementById('sf-lastname').value.trim();
+  const firstname=document.getElementById('sf-firstname').value.trim();
+  const phone    =document.getElementById('sf-phone').value.trim();
+  const emergency=document.getElementById('sf-emergency').value.trim();
+  const address  =document.getElementById('sf-address').value.trim();
+  const joindate =document.getElementById('sf-joindate').value;
+  const role     =document.getElementById('sf-role').value;
+  const msg      =document.getElementById('staff-form-msg');
+
+  if(!firstname && !lastname){
+    showStaffMsg(msg,'⚠️ Нэр эсвэл овог бөглөнө үү!','#c07d00','#fff8e1'); return;
+  }
+
+  const fullname=[lastname,firstname].filter(Boolean).join(' ');
+
+  // Supabase staff table has: id, name, phone, created_at
+  // We store extra fields in a metadata approach using name field for now
+  const {data,error}=await sb.from('staff').insert({
+    name: fullname,
+    phone: phone||null,
+  }).select().single();
+
+  if(error){ showStaffMsg(msg,'❌ Алдаа: '+error.message,'#b91c1c','#fee2e2'); return; }
+
+  // Store extra info locally (will persist via localStorage until DB schema updated)
+  const extras=JSON.parse(localStorage.getItem('staffExtras')||'{}');
+  extras[data.id]={ lastname,firstname,emergency,address,joindate,role };
+  localStorage.setItem('staffExtras',JSON.stringify(extras));
+
+  allStaff.unshift(data);
+  showStaffMsg(msg,'✅ '+fullname+' амжилттай бүртгэгдлээ!','#15803d','#dcfce7');
+  showToast('✅ '+fullname+' нэмэгдлээ!','green');
+  clearStaffForm();
+  renderStaffList();
+
+  // Update form dropdown
+  const stSel=document.getElementById('f-staff');
+  if(stSel && stSel.tagName==='SELECT'){ stSel.appendChild(new Option(fullname,data.id)); }
+}
+
+function showStaffMsg(el,text,color,bg){
+  el.style.display='block'; el.style.color=color; el.style.background=bg;
+  el.style.padding='8px 12px'; el.style.borderRadius='8px'; el.style.fontWeight='600';
+  el.textContent=text;
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+function renderStaffList(){
+  var list=document.getElementById('staff-list');
+  var countEl=document.getElementById('staff-count');
+  if(!list) return;
+  var extras=JSON.parse(localStorage.getItem('staffExtras')||'{}');
+  var ROLE_COLORS={operator:'#2d4b9e',manager:'#0369a1',warehouse:'#15803d',accountant:'#b45309',other:'#6b7a8d'};
+  var ROLE_BG={operator:'#ede9fe',manager:'#e0f2fe',warehouse:'#dcfce7',accountant:'#fff8e1',other:'#f4f6fb'};
+  if(countEl) countEl.textContent=allStaff.length+' ажилтан';
+  list.innerHTML='';
+  if(!allStaff.length){
+    var em=document.createElement('div');
+    em.style.cssText='text-align:center;padding:40px;color:#aab3c0;font-size:14px';
+    em.textContent='\u0410\u0436\u0438\u043b\u0442\u0430\u043d \u043e\u043b\u0434\u0441\u043e\u043d\u0433\u04af\u0439';
+    list.appendChild(em); return;
+  }
+  console.log('Rendering', allStaff.length, 'staff');
+  allStaff.forEach(function(s){
+    var ex=extras[s.id]||{};
+    var roleLabel=ROLES[ex.role]||'\u2014';
+    var orderCount=(allOrders||[]).filter(function(o){return o.staff_id===s.id;}).length;
+    var initials=(s.name||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    var rc=ROLE_COLORS[ex.role]||'#6b7a8d';
+    var rb=ROLE_BG[ex.role]||'#f4f6fb';
+
+    var row=document.createElement('div');
+    row.style.cssText='padding:14px 18px;border-bottom:1px solid #f4f6fb;display:grid;grid-template-columns:2fr 1.4fr 1.1fr 1.1fr 1.1fr 0.7fr 1fr;gap:8px;align-items:center;cursor:pointer;transition:background 0.15s';
+    row.onmouseover=function(){this.style.background='#f8f6ff';};
+    row.onmouseout=function(){this.style.background='';};
+    row.onclick=function(){openStaffModal(s.id);};
+
+    // Col 1: Avatar + Name
+    var col1=document.createElement('div');
+    col1.style.cssText='display:flex;align-items:center;gap:10px';
+    var av=document.createElement('div');
+    av.style.cssText='width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    av.textContent=initials;
+    var nameDiv=document.createElement('div');
+    var n1=document.createElement('div');n1.style.cssText='font-weight:600;font-size:14px';n1.textContent=s.name||'\u2014';
+    var n2=document.createElement('div');n2.style.cssText='font-size:11px;color:#94a3b8;font-weight:500';n2.textContent=s.phone||'';
+    nameDiv.appendChild(n1);nameDiv.appendChild(n2);
+    col1.appendChild(av);col1.appendChild(nameDiv);
+    row.appendChild(col1);
+
+    // Col 2: Phone
+    var col2=document.createElement('div');
+    if(s.phone){
+      var sp=document.createElement('span');sp.style.fontSize='13.5px';sp.textContent=s.phone;
+      col2.appendChild(sp);
+    } else {
+      var inp=document.createElement('input');
+      inp.placeholder='\u0423\u0442\u0430\u0441 \u043d\u044d\u043c\u044d\u0445...';inp.maxLength=8;
+      inp.style.cssText='width:100%;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:inherit;outline:none;color:#1a2332';
+      inp.onfocus=function(){this.style.borderColor='#2d4b9e';};
+      inp.onblur=(function(sid){return function(){saveStaffPhone(sid,this.value);this.style.borderColor='#e2e8f0';};})(s.id);
+      inp.onclick=function(e){e.stopPropagation();};
+      col2.appendChild(inp);
+    }
+    row.appendChild(col2);
+
+    // Col 3: Role
+    var col3=document.createElement('span');
+    if(ex.role){
+      var rs=document.createElement('span');
+      rs.style.cssText='padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:'+rb+';color:'+rc;
+      rs.textContent=roleLabel; col3.appendChild(rs);
+    } else { col3.style.color='#aab3c0'; col3.textContent='\u2014'; }
+    row.appendChild(col3);
+
+    // Col 4: Emergency
+    var col4=document.createElement('span');col4.style.fontSize='13px';
+    col4.textContent=ex.emergency||'\u2014';if(!ex.emergency)col4.style.color='#aab3c0';
+    row.appendChild(col4);
+
+    // Col 5: Join date
+    var col5=document.createElement('span');col5.style.cssText='font-size:12px;color:#6b7a8d';
+    col5.textContent=ex.joindate||'\u2014';if(!ex.joindate)col5.style.color='#aab3c0';
+    row.appendChild(col5);
+
+    // Col 6: Order count
+    var col6=document.createElement('span');col6.style.cssText='font-size:13.5px;font-weight:600;color:#2d4b9e';
+    col6.textContent=orderCount;
+    row.appendChild(col6);
+
+    // Col 7: PIN reset
+    var col7=document.createElement('button');
+    col7.style.cssText='padding:5px 10px;border-radius:8px;border:1.5px solid #fee2e2;background:#fff;color:#b91c1c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap';
+    col7.textContent='PIN reset';
+    col7.onclick=(function(sid,sname){return function(e){e.stopPropagation();resetStaffPin(sid,sname);};})(s.id,s.name);
+    row.appendChild(col7);
+
+    list.appendChild(row);
+  });
+}
+
+// ============ TAB SWITCH ============
+function switchTab(tab){
+  document.getElementById('tab-staff').style.display = tab==='staff' ? 'block' : 'none';
+  document.getElementById('tab-driver').style.display = tab==='driver' ? 'block' : 'none';
+  const btnS=document.getElementById('tab-staff-btn');
+  const btnD=document.getElementById('tab-driver-btn');
+  if(tab==='staff'){
+    btnS.style.background='#2d4b9e'; btnS.style.color='#fff';
+    btnD.style.background='transparent'; btnD.style.color='#6b7a8d';
+    loadStaff();
+  } else {
+    btnD.style.background='#2d4b9e'; btnD.style.color='#fff';
+    btnS.style.background='transparent'; btnS.style.color='#6b7a8d';
+    // Хадгалагдсан drivers-оор шууд харуулаад, шинэ мэдээлэл татна
+    renderDriverList();
+    loadDrivers();
+  }
+}
+
+// ============ DRIVER MANAGEMENT ============
+async function loadDrivers(){
+  const {data,error}=await sb.from('drivers').select('*').order('created_at',{ascending:false});
+  if(error) return;
+  drivers=data||[];
+  // Refresh bulk assign & form dropdowns
+  ['bulk-drv','fd-driver'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel || sel.tagName!=='SELECT') return;
+    const cur=sel.value;
+    sel.innerHTML=id==='fd-driver'
+      ?'<option value="">🧑‍✈️ Бүх жолооч</option>'
+      :'<option value="">Жолооч сонгох...</option>';
+    drivers.forEach(d=>{
+      const o=id==='fd-driver'?new Option(d.name,d.name):new Option(d.name,d.id);
+      sel.appendChild(o);
+    });
+    if(cur) sel.value=cur;
+  });
+  renderDriverList();
+}
+
+function toggleDriverForm(){
+  const wrap=document.getElementById('driver-form-wrap');
+  const isHidden=wrap.style.display==='none';
+  wrap.style.display=isHidden?'block':'none';
+  if(isHidden){
+    document.getElementById('df-firstname').focus();
+    document.getElementById('df-joindate').value=toISO(new Date());
+  } else {
+    clearDriverForm();
+  }
+}
+
+function clearDriverForm(){
+  ['df-lastname','df-firstname','df-phone','df-emergency','df-address','df-joindate','df-plate']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+async function saveDriver(){
+  const lastname =document.getElementById('df-lastname').value.trim();
+  const firstname=document.getElementById('df-firstname').value.trim();
+  const phone    =document.getElementById('df-phone').value.trim();
+  const emergency=document.getElementById('df-emergency').value.trim();
+  const address  =document.getElementById('df-address').value.trim();
+  const joindate =document.getElementById('df-joindate').value;
+  const plate    =document.getElementById('df-plate').value.trim();
+  const msg      =document.getElementById('driver-form-msg');
+
+  if(!firstname && !lastname){
+    showStaffMsg(msg,'⚠️ Нэр эсвэл овог бөглөнө үү!','#c07d00','#fff8e1'); return;
+  }
+
+  const fullname=[lastname,firstname].filter(Boolean).join(' ');
+
+  const {data,error}=await sb.from('drivers').insert({
+    name: fullname,
+    phone: phone||null,
+    status: 'available',
+  }).select().single();
+
+  if(error){ showStaffMsg(msg,'❌ Алдаа: '+error.message,'#b91c1c','#fee2e2'); return; }
+
+  // Extra info localStorage-д хадгалах
+  const extras=JSON.parse(localStorage.getItem('driverExtras')||'{}');
+  extras[data.id]={ lastname,firstname,emergency,address,joindate,plate };
+  localStorage.setItem('driverExtras',JSON.stringify(extras));
+
+  drivers.unshift(data);
+  showStaffMsg(msg,'✅ '+fullname+' амжилттай бүртгэгдлээ!','#15803d','#dcfce7');
+  showToast('✅ '+fullname+' нэмэгдлээ!','green');
+  clearDriverForm();
+  renderDriverList();
+  loadDrivers();
+}
+
+function resetDriverPin(id, name){
+  if(!confirm(name + ' жолоочийн PIN ресет хийх үү? Тэр жолооч дараагийн PIN үүсгэх шаардлагатай болно.')) return;
+  // Суpabase-д pin_reset тэмдэглэх (drivers table-д reset_pin=true)
+  sb.from('drivers').update({pin_reset: true}).eq('id', id).then(function(){
+    showToast('✅ ' + name + ' PIN ресет хийгдлээ. Жолооч дараагийн PIN үүсгэнэ.','green');
+  });
+}
+
+function renderDriverList(){
+  const list=document.getElementById('driver-list');
+  const countEl=document.getElementById('driver-count');
+  if(!list) return;
+  const extras=JSON.parse(localStorage.getItem('driverExtras')||'{}');
+
+  if(!drivers.length){
+    list.innerHTML=`<div style="text-align:center;padding:40px;color:#aab3c0;font-size:14px">Жолооч бүртгэлгүй байна</div>`;
+    if(countEl) countEl.textContent='';
+    return;
+  }
+
+  if(countEl) countEl.textContent=drivers.length+' жолооч';
+
+  const statusColor={'available':'#15803d','busy':'#c07d00','offline':'#94a3b8'};
+  const statusLabel={'available':'Бэлэн','busy':'Ажилтай','offline':'Офлайн'};
+
+  list.innerHTML=drivers.map(d=>{
+    const ex=extras[d.id]||{};
+    const initials=(d.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const orderCount=allOrders.filter(o=>o.driver_id===d.id).length;
+    const sc=statusColor[d.status]||'#94a3b8';
+    const phone=d.phone||ex.phone||'';
+    return `<div onclick="openDriverModal('${d.id}')" style="padding:14px 18px;border-bottom:1px solid #f4f6fb;display:grid;grid-template-columns:2fr 1.4fr 1.1fr 1.1fr 1.1fr 0.7fr 1fr;gap:8px;align-items:center;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8f6ff'" onmouseout="this.style.background='#fff'">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+        <div>
+          <div style="font-weight:600;font-size:14px">${d.name}</div>
+          <div style="font-size:11px;color:${sc};font-weight:600">${statusLabel[d.status]||'Бэлэн'}</div>
+        </div>
+      </div>
+      <div>
+        ${phone
+          ? `<span style="font-size:13.5px">${phone}</span>`
+          : `<input placeholder="Утас нэмэх..." maxlength="8"
+              style="width:100%;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:inherit;outline:none;color:#1a2332"
+              onfocus="this.style.borderColor='#2d4b9e'"
+              onblur="this.style.borderColor='#e2e8f0';saveDriverPhone('${d.id}',this.value)"/>`
+        }
+      </div>
+      <span style="font-size:13px">${ex.plate?`<span style="padding:3px 8px;border-radius:8px;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:600">${ex.plate}</span>`:'<span style="color:#aab3c0">—</span>'}</span>
+      <span style="font-size:13px">${ex.emergency||'<span style="color:#aab3c0">—</span>'}</span>
+      <span style="font-size:12px;color:#6b7a8d">${ex.joindate||'<span style="color:#aab3c0">—</span>'}</span>
+      <span style="font-size:13.5px;font-weight:600;color:#2d4b9e">${orderCount}</span>
+      <button onclick="event.stopPropagation();resetDriverPin('${d.id}','${d.name}')" style="padding:5px 10px;border-radius:8px;border:1.5px solid #fee2e2;background:#fff;color:#b91c1c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">PIN reset</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveDriverPhone(id, phone){
+  if(!phone || phone.length < 8) return;
+  const {error}=await sb.from('drivers').update({phone}).eq('id',id);
+  if(!error){
+    const d=drivers.find(x=>x.id===id);
+    if(d) d.phone=phone;
+    showToast('✅ Утасны дугаар хадгалагдлаа!','green');
+    renderDriverList();
+  }
+}
+
+// ====== DRIVER EDIT MODAL ======
+function openDriverModal(id){
+  const d=drivers.find(x=>x.id===id);
+  if(!d) return;
+  const extras=JSON.parse(localStorage.getItem('driverExtras')||'{}');
+  const ex=extras[id]||{};
+
+  document.getElementById('dm-id').value=id;
+  document.getElementById('dm-lastname').value=ex.lastname||'';
+  document.getElementById('dm-firstname').value=ex.firstname||d.name||'';
+  document.getElementById('dm-phone').value=d.phone||'';
+  document.getElementById('dm-emergency').value=ex.emergency||'';
+  document.getElementById('dm-address').value=ex.address||'';
+  document.getElementById('dm-joindate').value=ex.joindate||'';
+  document.getElementById('dm-plate').value=ex.plate||'';
+
+  const initials=(d.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('dm-avatar').textContent=initials;
+  document.getElementById('dm-name').textContent=d.name;
+
+  const modal=document.getElementById('driver-modal');
+  modal.style.display='flex';
+}
+
+function closeDriverModal(){
+  document.getElementById('driver-modal').style.display='none';
+  document.getElementById('dm-msg').style.display='none';
+}
+
+// Modal гадна дарахад хаах
+var _dm=document.getElementById('driver-modal');
+if(_dm) _dm.addEventListener('click',function(e){ if(e.target===this) closeDriverModal(); });
+
+async function saveDriverEdit(){
+  const id       =document.getElementById('dm-id').value;
+  const lastname =document.getElementById('dm-lastname').value.trim();
+  const firstname=document.getElementById('dm-firstname').value.trim();
+  const phone    =document.getElementById('dm-phone').value.trim();
+  const emergency=document.getElementById('dm-emergency').value.trim();
+  const address  =document.getElementById('dm-address').value.trim();
+  const joindate =document.getElementById('dm-joindate').value;
+  const plate    =document.getElementById('dm-plate').value.trim();
+  const msg      =document.getElementById('dm-msg');
+
+  if(!firstname && !lastname){
+    showStaffMsg(msg,'⚠️ Нэр бөглөнө үү!','#c07d00','#fff8e1'); return;
+  }
+
+  const fullname=[lastname,firstname].filter(Boolean).join(' ');
+
+  // Supabase шинэчлэх
+  const {error}=await sb.from('drivers').update({
+    name:fullname,
+    phone:phone||null,
+  }).eq('id',id);
+
+  if(error){ showStaffMsg(msg,'❌ Алдаа: '+error.message,'#b91c1c','#fee2e2'); return; }
+
+  // localStorage шинэчлэх
+  const extras=JSON.parse(localStorage.getItem('driverExtras')||'{}');
+  extras[id]={ lastname,firstname,emergency,address,joindate,plate };
+  localStorage.setItem('driverExtras',JSON.stringify(extras));
+
+  // Local cache шинэчлэх
+  const d=drivers.find(x=>x.id===id);
+  if(d){ d.name=fullname; d.phone=phone||null; }
+
+  // Modal header шинэчлэх
+  document.getElementById('dm-name').textContent=fullname;
+  const initials=fullname.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('dm-avatar').textContent=initials;
+
+  showStaffMsg(msg,'✅ Мэдээлэл хадгалагдлаа!','#15803d','#dcfce7');
+  showToast('✅ '+fullname+' мэдээлэл шинэчлэгдлээ!','green');
+  renderDriverList();
+}
+
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.className='toast',3500);
+}
+</script>
+<!-- ====== DRIVER EDIT MODAL ====== -->
+<div id="driver-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.45);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="dm-avatar" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center"></div>
+        <div>
+          <div id="dm-name" style="font-size:18px;font-weight:700;color:#1a2332"></div>
+          <div style="font-size:12px;color:#8a96a8;margin-top:2px">Жолоочийн мэдээлэл засах</div>
+        </div>
+      </div>
+      <button onclick="closeDriverModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:18px;color:#6b7a8d;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+
+    <input type="hidden" id="dm-id"/>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Овог</label>
+        <input class="fi" id="dm-lastname" placeholder="Овог..."/>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Нэр</label>
+        <input class="fi" id="dm-firstname" placeholder="Нэр..."/>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Утасны дугаар</label>
+        <input class="fi" id="dm-phone" placeholder="99001234" maxlength="8"/>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ойрын хүний дугаар</label>
+        <input class="fi" id="dm-emergency" placeholder="99001234" maxlength="8"/>
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Гэрийн хаяг</label>
+        <input class="fi" id="dm-address" placeholder="Гэрийн хаяг..."/>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ажилд орсон огноо</label>
+        <input class="fi" type="date" id="dm-joindate"/>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Машины дугаар</label>
+        <input class="fi" id="dm-plate" placeholder="УБ 1234АА..."/>
+      </div>
+    </div>
+
+    <div id="dm-msg" style="display:none;margin-top:12px"></div>
+
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">
+      <button onclick="closeDriverModal()" style="padding:11px 24px;border-radius:10px;border:1.5px solid #dde3ec;background:#fff;font-size:14px;font-weight:600;color:#6b7a8d;cursor:pointer;font-family:inherit">
+        Цуцлах
+      </button>
+      <button onclick="saveDriverEdit()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(91,33,182,0.3)">
+        Хадгалах
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="staff-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.45);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:28px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;position:relative">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+      <div id="sm-avatar" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+      <div><div id="sm-name" style="font-size:17px;font-weight:700"></div><div style="font-size:13px;color:#8a96a8">Ажилтны мэдээлэл засах</div></div>
+      <button onclick="closeStaffModal()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:16px;color:#6b7a8d">×</button>
+    </div>
+    <input type="hidden" id="sm-id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Овог</label><input class="fi" id="sm-lastname" placeholder="Овог..."/></div>
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Нэр</label><input class="fi" id="sm-firstname" placeholder="Нэр..."/></div>
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Утасны дугаар</label><input class="fi" id="sm-phone" placeholder="99001234" maxlength="8"/></div>
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ойрын хүний дугаар</label><input class="fi" id="sm-emergency" placeholder="99001234" maxlength="8"/></div>
+      <div style="grid-column:1/-1"><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Гэрийн хаяг</label><input class="fi" id="sm-address" placeholder="Гэрийн хаяг..."/></div>
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Ажилд орсон огноо</label><input class="fi" type="date" id="sm-joindate"/></div>
+      <div><label style="font-size:13px;font-weight:600;color:#2d3a4a;margin-bottom:6px;display:block">Үүрэг / Ролл</label>
+        <select class="fi" id="sm-role" style="appearance:none">
+          <option value="">Сонгох...</option>
+          <option value="operator">Оператор</option>
+          <option value="manager">Менежер</option>
+          <option value="warehouse">Агуулахын ажилтан</option>
+          <option value="accountant">Нябо</option>
+          <option value="other">Бусад</option>
+        </select>
+      </div>
+    </div>
+    <div id="sm-msg" style="display:none;margin-top:12px"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeStaffModal()" style="padding:11px 24px;border-radius:10px;border:1.5px solid #dde3ec;background:#fff;font-size:14px;font-weight:600;color:#6b7a8d;cursor:pointer;font-family:inherit">Цуцлах</button>
+      <button onclick="saveStaffEdit()" style="padding:11px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d4b9e,#3d5cb5);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<script>
+// ===== STAFF LOGIN SYSTEM =====
+var TIMEOUT_MS = 12 * 60 * 60 * 1000; // 12 цаг
+
+var slBuf = '', slMode = '', slNew1 = '', slStaff = null;
+
+function slGetPK(id){ return 'sl_pin_' + id; }
+
+function slShowErr(msg){
+  var e = document.getElementById('sl-err');
+  e.textContent = msg; e.style.display = msg ? 'block' : 'none';
+}
+
+function slLogin(){
+  var phone = document.getElementById('sl-ph').value.trim();
+  slShowErr('');
+  if(phone.length < 8){ slShowErr('Утасны дугаараа оруулна уу!'); return; }
+  var btn = document.getElementById('sl-btn');
+  btn.textContent = '...'; btn.disabled = true;
+  var qs = 'phone=eq.' + encodeURIComponent(phone);
+  fetch('https://lgnjvltiqtnhpqdvpihq.supabase.co/rest/v1/staff?' + qs, {
+    headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE'}
+  }).then(function(r){ return r.json(); }).then(function(data){
+    btn.textContent = 'Нэвтрэх'; btn.disabled = false;
+    if(!data || data.length === 0){ slShowErr('Утасны дугаар олдсонгүй.'); return; }
+    if(data.message){ slShowErr('Алдаа: ' + data.message); return; }
+    var found = data[0];
+    var stored = localStorage.getItem(slGetPK(found.id));
+    if(found.pin_reset){ localStorage.removeItem(slGetPK(found.id)); stored = null; }
+    slShowPin(stored ? 'verify' : 'new', found);
+  }).catch(function(e){
+    btn.textContent = 'Нэвтрэх'; btn.disabled = false;
+    slShowErr('Холболдоны алдаа: ' + e.message);
+  });
+}
+
+function slShowPin(mode, staff){
+  slStaff = staff; slMode = mode; slBuf = ''; slNew1 = '';
+  slUpdateDots();
+  document.getElementById('sl-step-phone').style.display = 'none';
+  document.getElementById('sl-step-pin').style.display = 'block';
+  document.getElementById('sl-pin-err').style.display = 'none';
+  document.getElementById('sl-forgot').style.display = 'none';
+  var t = document.getElementById('sl-pin-title');
+  var s = document.getElementById('sl-pin-sub');
+  if(mode === 'new'){
+    t.textContent = 'Шинэ PIN үүсгэх';
+    s.textContent = '4 оронтой PIN код тохийно';
+  } else {
+    t.textContent = 'PIN оруулна уу';
+    s.textContent = staff.name || '';
+  }
+}
+
+function slUpdateDots(){
+  for(var i=0;i<4;i++){
+    var d = document.getElementById('sl-pd'+i);
+    d.className = 'sl-dot' + (i < slBuf.length ? ' filled' : '');
+  }
+}
+function slPinInput(n){
+  if(slBuf.length >= 4) return;
+  slBuf += n; slUpdateDots();
+  if(slBuf.length === 4) setTimeout(slHandlePin, 180);
+}
+function slPinDel(){ if(slBuf.length>0){slBuf=slBuf.slice(0,-1);slUpdateDots();} }
+function slPinShake(){
+  for(var i=0;i<4;i++) document.getElementById('sl-pd'+i).className='sl-dot error';
+  setTimeout(function(){ slBuf=''; slUpdateDots(); }, 700);
+}
+function slHandlePin(){
+  var stored = localStorage.getItem(slGetPK(slStaff.id));
+  if(slMode === 'verify'){
+    if(slBuf === stored){
+      slEnterApp();
+    } else {
+      document.getElementById('sl-pin-err').textContent = 'Буруу PIN. Дахин оролдоно уу.';
+      document.getElementById('sl-pin-err').style.display = 'block';
+      document.getElementById('sl-forgot').style.display = 'block';
+      slPinShake();
+    }
+  } else {
+    if(slNew1 === ''){
+      slNew1 = slBuf; slBuf = ''; slUpdateDots();
+      document.getElementById('sl-pin-title').textContent = 'PIN давтана оруулна уу';
+      document.getElementById('sl-pin-sub').textContent = 'Баталгажын давтана оруулна';
+    } else {
+      if(slBuf === slNew1){
+        localStorage.setItem(slGetPK(slStaff.id), slBuf);
+        // pin_reset=false болгох
+        fetch('https://lgnjvltiqtnhpqdvpihq.supabase.co/rest/v1/staff?id=eq.'+slStaff.id,{method:'PATCH',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE','Content-Type':'application/json','Prefer':'return=minimal'},body:'{"pin_reset":false}'}).catch(function(){});
+        slEnterApp();
+      } else {
+        document.getElementById('sl-pin-err').textContent = 'PIN таарахгүй. Дахин оролдоно.';
+        document.getElementById('sl-pin-err').style.display = 'block';
+        slNew1 = ''; slPinShake();
+        setTimeout(function(){
+          document.getElementById('sl-pin-title').textContent = 'Шинэ PIN үүсгэх';
+          document.getElementById('sl-pin-sub').textContent = '4 оронтой PIN код тохийно';
+        }, 800);
+      }
+    }
+  }
+}
+function slBackPhone(){
+  slBuf=''; slNew1=''; slMode=''; slStaff=null;
+  // index.html-ээс ирсэн бол буцаж index руу явна
+  var p=new URLSearchParams(window.location.search).get('phone');
+  if(p){ window.location.href='index.html'; return; }
+  document.getElementById('sl-step-pin').style.display='none';
+  document.getElementById('sl-step-phone').style.display='block';
+  slShowErr('');
+}
+function applyRoleUI(){
+  // Бүх хэрэглэгч бүх цэсийг харна
+}
+
+// ===== ТАЙЛАН =====
+var rpPeriod='today', rpData=[];
+
+function setRpPeriod(p,btn){
+  rpPeriod=p;
+  document.querySelectorAll('.rp-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  if(p!=='custom')loadReport();
+}
+
+function getRpDates(){
+  var now=new Date();
+  var y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  function fmt(dt){return dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);}
+  if(rpPeriod==='today'){var t=fmt(now);return{from:t,to:t};}
+  if(rpPeriod==='week'){
+    var day=now.getDay()||7;
+    var mon=new Date(now);mon.setDate(d-day+1);
+    var sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    return{from:fmt(mon),to:fmt(sun)};
+  }
+  if(rpPeriod==='month'){return{from:y+'-'+('0'+(m+1)).slice(-2)+'-01',to:fmt(new Date(y,m+1,0))};}
+  if(rpPeriod==='year'){return{from:y+'-01-01',to:y+'-12-31'};}
+  if(rpPeriod==='custom'){
+    var f=document.getElementById('rp-from').value;
+    var t=document.getElementById('rp-to').value;
+    if(!f||!t){showToast('Огноо сонгоно уу!','red');return null;}
+    return{from:f,to:t};
+  }
+  return{from:fmt(now),to:fmt(now)};
+}
+
+async function loadReport(){
+  var dates=getRpDates();
+  if(!dates)return;
+  var el=document.getElementById('rp-summary');
+  if(el)el.innerHTML='<div style="padding:20px;color:#8a96a8;font-size:13px">...</div>';
+  var {data,error}=await sb.from('orders')
+    .select('id,status,staff_name,staff_id,driver_name,district,fail_reason,order_date,created_at')
+    .gte('order_date',dates.from)
+    .lte('order_date',dates.to)
+    .limit(10000);
+  if(error||!data){showToast('Тайлан ачаахад алдаа гарлаа','red');return;}
+  rpData=data;
+  renderReport(data, dates);
+}
+
+function renderReport(data, dates){
+  var total=data.length;
+  var delivered=data.filter(function(o){return o.status==='delivered';}).length;
+  var failed=data.filter(function(o){return o.status==='failed';}).length;
+  var pending=data.filter(function(o){return ['info','pending','assigned','in_transit'].indexOf(o.status)>=0;}).length;
+  var pct=total>0?Math.round(delivered/total*100):0;
+
+  // Summary cards
+  var summary=document.getElementById('rp-summary');
+  summary.innerHTML=[
+    {n:total,l:'Нийт захиалга',c:'#2d4b9e'},
+    {n:delivered,l:'Амжилттай',c:'#16a34a'},
+    {n:failed,l:'Амжилтгүй',c:'#dc2626'},
+    {n:pending,l:'Хүлээлтэнд',c:'#f59e0b'},
+    {n:pct+'%',l:'Амжилтын хуви',c:'#0369a1'},
+  ].map(function(x){return '<div class="rp-card"><div class="rp-card-n" style="color:'+x.c+'">'+x.n+'</div><div class="rp-card-l">'+x.l+'</div></div>';}).join('');
+
+  // Staff table - who entered how many orders
+  var staffMap={};
+  data.forEach(function(o){
+    var k=o.staff_name||'Тодорхғүй';
+    if(!staffMap[k])staffMap[k]={name:k,total:0,delivered:0,failed:0};
+    staffMap[k].total++;
+    if(o.status==='delivered')staffMap[k].delivered++;
+    if(o.status==='failed')staffMap[k].failed++;
+  });
+  var staffArr=Object.values(staffMap).sort(function(a,b){return b.total-a.total;});
+  var maxStaff=staffArr.length>0?staffArr[0].total:1;
+  var staffHtml='<table class="rp-tbl"><thead><tr><th>#</th><th>Ажилтан</th><th>Бичсэн</th><th>Амжилттай</th><th>Амжилтгүй</th><th>Хуви</th></tr></thead><tbody>';
+  staffArr.forEach(function(s,i){
+    var p=s.total>0?Math.round(s.delivered/s.total*100):0;
+    var barW=Math.round(s.total/maxStaff*160);if(barW>160)barW=160;
+    staffHtml+='<tr><td style="color:#8a96a8">'+(i+1)+'</td><td><strong>'+s.name+'</strong></td><td><div class="rp-bar-wrap"><div class="rp-bar" style="width:'+barW+'px"></div><span>'+s.total+'</span></div></td><td style="color:#16a34a;font-weight:700">'+s.delivered+'</td><td style="color:#dc2626;font-weight:700">'+s.failed+'</td><td><span style="font-weight:700;color:'+(p>=80?'#16a34a':p>=50?'#f59e0b':'#dc2626')+'">'+p+'%</span></td></tr>';
+  });
+  staffHtml+='</tbody></table>';
+  document.getElementById('rp-staff-table').innerHTML=staffArr.length?staffHtml:'<div style="padding:20px;color:#8a96a8;text-align:center">Мэдээлэл байхгүй</div>';
+
+  // Driver table
+  var drvMap={};
+  data.forEach(function(o){
+    var k=o.driver_name||'Хуваарилагдаагүй';
+    if(!drvMap[k])drvMap[k]={name:k,total:0,delivered:0,failed:0};
+    drvMap[k].total++;
+    if(o.status==='delivered')drvMap[k].delivered++;
+    if(o.status==='failed')drvMap[k].failed++;
+  });
+  var drvArr=Object.values(drvMap).sort(function(a,b){return b.delivered-a.delivered;});
+  var maxDrv=drvArr.length>0?drvArr[0].total:1;
+  var drvHtml='<table class="rp-tbl"><thead><tr><th>#</th><th>Жолооч</th><th>Нийт</th><th>Амжилттай</th><th>Амжилтгүй</th><th>Хуви</th></tr></thead><tbody>';
+  drvArr.forEach(function(d,i){
+    var p=d.total>0?Math.round(d.delivered/d.total*100):0;
+    var barW=Math.round(d.total/maxDrv*160);if(barW>160)barW=160;
+    drvHtml+='<tr><td style="color:#8a96a8">'+(i+1)+'</td><td><strong>'+d.name+'</strong></td><td><div class="rp-bar-wrap"><div class="rp-bar" style="width:'+barW+'px;background:#1a56db"></div><span>'+d.total+'</span></div></td><td style="color:#16a34a;font-weight:700">'+d.delivered+'</td><td style="color:#dc2626;font-weight:700">'+d.failed+'</td><td><span style="font-weight:700;color:'+(p>=80?'#16a34a':p>=50?'#f59e0b':'#dc2626')+'">'+p+'%</span></td></tr>';
+  });
+  drvHtml+='</tbody></table>';
+  document.getElementById('rp-driver-table').innerHTML=drvArr.length?drvHtml:'<div style="padding:20px;color:#8a96a8;text-align:center">Мэдээлэл байхгүй</div>';
+
+  // Fail reasons
+  var failMap={};
+  data.filter(function(o){return o.status==='failed'&&o.fail_reason;}).forEach(function(o){
+    failMap[o.fail_reason]=(failMap[o.fail_reason]||0)+1;
+  });
+  var failArr=Object.entries(failMap).sort(function(a,b){return b[1]-a[1];});
+  var maxFail=failArr.length>0?failArr[0][1]:1;
+  var failHtml='<table class="rp-tbl"><thead><tr><th>#</th><th>Шалтгаан</th><th>Тоо</th></tr></thead><tbody>';
+  failArr.forEach(function(f,i){
+    var barW=Math.round(f[1]/maxFail*160);if(barW>160)barW=160;
+    failHtml+='<tr><td style="color:#8a96a8">'+(i+1)+'</td><td>'+f[0]+'</td><td><div class="rp-bar-wrap"><div class="rp-bar" style="width:'+barW+'px;background:#dc2626"></div><span>'+f[1]+'</span></div></td></tr>';
+  });
+  failHtml+='</tbody></table>';
+  document.getElementById('rp-fail-table').innerHTML=failArr.length?failHtml:'<div style="padding:20px;color:#8a96a8;text-align:center">Амжилтгүй шалтгаан байхгүй</div>';
+
+  // District
+  var distMap={};
+  data.forEach(function(o){
+    var k=o.district||'Тодорхғүй';
+    if(!distMap[k])distMap[k]={name:k,total:0,delivered:0};
+    distMap[k].total++;
+    if(o.status==='delivered')distMap[k].delivered++;
+  });
+  var distArr=Object.values(distMap).sort(function(a,b){return b.total-a.total;});
+  var maxDist=distArr.length>0?distArr[0].total:1;
+  var distHtml='<table class="rp-tbl"><thead><tr><th>#</th><th>Дүүрэг</th><th>Нийт</th><th>Амжилттай</th></tr></thead><tbody>';
+  distArr.forEach(function(d,i){
+    var barW=Math.round(d.total/maxDist*160);if(barW>160)barW=160;
+    distHtml+='<tr><td style="color:#8a96a8">'+(i+1)+'</td><td><strong>'+d.name+'</strong></td><td><div class="rp-bar-wrap"><div class="rp-bar" style="width:'+barW+'px;background:#0369a1"></div><span>'+d.total+'</span></div></td><td style="color:#16a34a;font-weight:700">'+d.delivered+'</td></tr>';
+  });
+  distHtml+='</tbody></table>';
+  document.getElementById('rp-district-table').innerHTML=distArr.length?distHtml:'<div style="padding:20px;color:#8a96a8;text-align:center">Мэдээлэл байхгүй</div>';
+}
+// End report JS
+
+function slEnterApp(){
+  localStorage.setItem('sl_session', JSON.stringify(slStaff));
+  localStorage.setItem('sl_exp', Date.now() + TIMEOUT_MS);
+  document.getElementById('staffLogin').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  applyRoleUI();
+  // 12 цагийн дараа автоматаар гарах
+  setTimeout(function(){
+    alert('Цаг дууссан тул автоматаар гарлаа.');
+    slLogout();
+  }, TIMEOUT_MS);
+}
+function slLogout(){
+  localStorage.removeItem('sl_session');
+  localStorage.removeItem('sl_exp');
+  window.location.href='index.html';
+}
+
+// URL-аас phone авч шуудхан нэвтрэх (index.html-ээс PIN шалгасны дараа)
+(function(){
+  var p=new URLSearchParams(window.location.search).get('phone');
+  if(p){
+    var _url='https://lgnjvltiqtnhpqdvpihq.supabase.co';
+    var _key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE';
+    fetch(_url+'/rest/v1/staff?phone=eq.'+encodeURIComponent(p),{headers:{'apikey':_key,'Authorization':'Bearer '+_key}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data&&data.length>0&&!data.message){
+        slStaff=data[0];
+        localStorage.setItem('sl_session',JSON.stringify(slStaff));
+        localStorage.setItem('sl_exp',Date.now()+TIMEOUT_MS);
+        document.getElementById('staffLogin').style.display='none';
+        document.getElementById('mainApp').style.display='block';
+        applyRoleUI();
+        setTimeout(function(){alert('Цаг дууссан тул автоматаар гарлаа.');slLogout();},TIMEOUT_MS);
+      }
+    }).catch(function(){});
+  }
+})();
+
+// Session шалгах
+(function(){
+  var saved = localStorage.getItem('sl_session');
+  var exp = localStorage.getItem('sl_exp');
+  if(saved && exp && Date.now() < parseInt(exp)){
+    var _sl2=document.getElementById('staffLogin'), _ma2=document.getElementById('mainApp');
+    if(_sl2) _sl2.style.display = 'none';
+    if(_ma2) _ma2.style.display = 'block';
+    applyRoleUI();
+    var remaining = parseInt(exp) - Date.now();
+    setTimeout(function(){ alert('Цаг дууссан тул автоматаар гарлаа.'); slLogout(); }, remaining);
+  } else {
+    localStorage.removeItem('sl_session');
+    localStorage.removeItem('sl_exp');
+    var _sl3=document.getElementById('staffLogin'); if(_sl3) _sl3.style.display = 'flex';
+  }
+})();
+
+function openStaffModal(id){
+  const s=allStaff.find(x=>x.id===id);
+  if(!s) return;
+  const extras=JSON.parse(localStorage.getItem('staffExtras')||'{}');
+  const ex=extras[id]||{};
+  document.getElementById('sm-id').value=id;
+  document.getElementById('sm-lastname').value=ex.lastname||'';
+  document.getElementById('sm-firstname').value=ex.firstname||s.name||'';
+  document.getElementById('sm-phone').value=s.phone||'';
+  document.getElementById('sm-emergency').value=ex.emergency||'';
+  document.getElementById('sm-address').value=ex.address||'';
+  document.getElementById('sm-joindate').value=ex.joindate||'';
+  document.getElementById('sm-role').value=ex.role||'';
+  const initials=(s.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('sm-avatar').textContent=initials;
+  document.getElementById('sm-name').textContent=s.name;
+  document.getElementById('staff-modal').style.display='flex';
+}
+function closeStaffModal(){
+  document.getElementById('staff-modal').style.display='none';
+  document.getElementById('sm-msg').style.display='none';
+}
+var _sm=document.getElementById('staff-modal');
+if(_sm) _sm.addEventListener('click',function(e){ if(e.target===this) closeStaffModal(); });
+
+async function saveStaffEdit(){
+  const id=document.getElementById('sm-id').value;
+  const lastname=document.getElementById('sm-lastname').value.trim();
+  const firstname=document.getElementById('sm-firstname').value.trim();
+  const phone=document.getElementById('sm-phone').value.trim();
+  const emergency=document.getElementById('sm-emergency').value.trim();
+  const address=document.getElementById('sm-address').value.trim();
+  const joindate=document.getElementById('sm-joindate').value;
+  const role=document.getElementById('sm-role').value;
+  const msg=document.getElementById('sm-msg');
+  if(!firstname&&!lastname){ msg.style.display='block';msg.style.background='#fff8e1';msg.style.color='#c07d00';msg.textContent='Нэр бөглөнө уу!'; return; }
+  const fullname=[lastname,firstname].filter(Boolean).join(' ');
+  const {error}=await sb.from('staff').update({name:fullname,phone:phone||null}).eq('id',id);
+  if(error){ msg.style.display='block';msg.style.background='#fee2e2';msg.style.color='#b91c1c';msg.textContent='Алдаа: '+error.message; return; }
+  // Save extras
+  const extras=JSON.parse(localStorage.getItem('staffExtras')||'{}');
+  extras[id]={lastname,firstname,emergency,address,joindate,role};
+  localStorage.setItem('staffExtras',JSON.stringify(extras));
+  // Update local
+  const idx=allStaff.findIndex(x=>x.id===id);
+  if(idx>=0){allStaff[idx].name=fullname;allStaff[idx].phone=phone||null;}
+  showToast('✅ Хадгалагдлаа!','green');
+  closeStaffModal();
+  renderStaffList();
+}
+
+
+</script>
+<div class="page" id="page-report">
+  <div style="padding:24px">
+    <h2 style="font-size:20px;font-weight:700;color:#1a2332;margin-bottom:4px">📊 Тайлан</h2>
+    <p style="font-size:13px;color:#8a96a8;margin-bottom:20px">Захиалгын тайлан, гүйцэтгийн шинжилгээ</p>
+
+    <!-- Time filter -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;align-items:center">
+      <button class="rp-btn active" onclick="setRpPeriod('today',this)">Өнөөдөр</button>
+      <button class="rp-btn" onclick="setRpPeriod('week',this)">Энэ долоо</button>
+      <button class="rp-btn" onclick="setRpPeriod('month',this)">Энэ сар</button>
+      <button class="rp-btn" onclick="setRpPeriod('year',this)">Энэ жил</button>
+      <span style="color:#c0c8d8;font-size:18px">|</span>
+      <input type="date" id="rp-from" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      <span style="color:#8a96a8;font-size:13px">—</span>
+      <input type="date" id="rp-to" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      <button class="rp-btn" onclick="setRpPeriod('custom',this)">Хайх</button>
+    </div>
+
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px" id="rp-summary"></div>
+
+    <!-- Staff table - MAIN -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid #f0f3f9;font-size:14px;font-weight:700;color:#1a2332">👤 Ажилтан тус бүрийн захиалгын тоо</div>
+      <div id="rp-staff-table"></div>
+    </div>
+
+    <!-- Driver table -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid #f0f3f9;font-size:14px;font-weight:700;color:#1a2332">🚚 Жолооч тус бүрийн хүргэлт</div>
+      <div id="rp-driver-table"></div>
+    </div>
+
+    <!-- Fail reasons -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid #f0f3f9;font-size:14px;font-weight:700;color:#1a2332">📋 Амжилтгүйгийн шалтгаан</div>
+      <div id="rp-fail-table"></div>
+    </div>
+
+    <!-- District -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid #f0f3f9;font-size:14px;font-weight:700;color:#1a2332">🏙️ Дүүрэгийн хүргэлт</div>
+      <div id="rp-district-table"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</body>
+</html>

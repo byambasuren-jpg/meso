@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Жолооч</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#eef1f7;min-height:100vh;color:#1a2332;max-width:480px;margin:0 auto}
+
+/* LOGIN */
+.login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#eef1f7}
+.logo{font-size:52px;margin-bottom:12px}
+.title{font-size:26px;font-weight:700;margin-bottom:4px}
+.sub{font-size:14px;color:#8a96a8;margin-bottom:36px}
+.card{background:#fff;border-radius:20px;padding:28px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.09)}
+label{font-size:14px;font-weight:600;color:#2d3a4a;margin-bottom:8px;display:block}
+input[type=tel]{width:100%;padding:14px;border:2px solid #dde3ec;border-radius:12px;font-size:22px;text-align:center;letter-spacing:3px;outline:none;font-family:inherit;color:#1a2332;background:#fff}
+input[type=tel]:focus{border-color:#1a56db}
+.btn{display:block;width:100%;margin-top:14px;padding:16px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:active{opacity:.85}
+.err{margin-top:12px;padding:10px 14px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:13px;font-weight:600;display:none;text-align:center}
+.pin-dot{width:18px;height:18px;border-radius:50%;background:#e2e8f0;transition:all 0.15s}
+.pin-dot.filled{background:#1a56db;transform:scale(1.1)}
+.pin-dot.error{background:#b91c1c}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.npbtn{padding:18px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;font-size:22px;font-weight:600;cursor:pointer;font-family:inherit;color:#1a2332;transition:all 0.1s}
+.npbtn:active{background:#e8f0fe;border-color:#1a56db;transform:scale(0.95)}
+
+/* APP - LIST VIEW */
+.app{display:none}
+.hdr{background:#1a56db;padding:14px 16px 10px;position:sticky;top:0;z-index:10}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.av{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.dname{font-size:14px;font-weight:700;color:#fff}
+.dph{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px}
+.obtn{padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:12px;cursor:pointer;font-family:inherit}
+.dnav{display:flex;align-items:center;justify-content:space-between}
+.nbtn{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.nbtn:disabled{opacity:.3;cursor:not-allowed}
+.dlbl{font-size:14px;font-weight:600;color:#fff}
+.stats{display:flex;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid #e8ecf5}
+.sbox{flex:1;text-align:center;padding:6px 4px;background:#f4f7ff;border-radius:8px}
+.sn{font-size:18px;font-weight:700;color:#1a56db}
+.sl{font-size:10px;font-weight:600;color:#8a96a8;margin-top:1px}
+.vswitch{display:flex;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid #e8ecf5}
+.vbtn{flex:1;padding:6px 4px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#6b7a8d;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.vbtn.active{background:#1a56db;color:#fff;border-color:#1a56db}
+.owrap{padding:10px 12px 80px}
+.empty{text-align:center;padding:60px 20px;color:#aab3c0}
+.warn-bar{margin:10px 12px 0;padding:10px 14px;background:#fff8e1;border-radius:10px;border-left:4px solid #f59e0b;font-size:13px;font-weight:600;color:#92400e}
+
+/* ORDER CARDS */
+.oc{background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.oc:active{opacity:.85}
+.oc.done{opacity:.6}
+.oc-stripe{height:4px;background:#1a56db}
+.oc-stripe.done-clr{background:#16a34a}
+.oc-stripe.fail-clr{background:#dc2626}
+.oc-body{padding:10px 14px}
+.oc-num{width:26px;height:26px;border-radius:8px;background:#e8f0fe;color:#1a56db;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;vertical-align:middle}
+.oc-num.done-num{background:#dcfce7;color:#16a34a}
+.oc-num.fail-num{background:#fee2e2;color:#dc2626}
+.oc-addr{font-size:14px;font-weight:600;color:#1a2332;margin-bottom:3px;line-height:1.3}
+.oc-meta{font-size:12px;color:#4a5568;font-weight:500;margin-bottom:2px}
+.oc-note-inline{font-size:11.5px;color:#92400e;font-style:italic}
+.oc-dist{display:inline-block;padding:2px 8px;border-radius:20px;background:#e8f0fe;color:#1a56db;font-size:11px;font-weight:700;margin-left:4px}
+.oc-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:3px}
+.st-assigned{background:#e8f0fe;color:#1a56db}
+.st-delivered{background:#dcfce7;color:#16a34a}
+.st-failed{background:#fee2e2;color:#dc2626}
+.oc-arrow{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#c0c8d8;font-size:18px}
+
+/* DETAIL VIEW */
+.detail{display:none;height:100vh;background:#eef1f7;flex-direction:column;overflow:hidden}
+.det-hdr{background:#1a56db;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.det-back{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.det-title{font-size:14px;font-weight:700;color:#fff;flex:1}
+.det-ord-num{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.det-body-wrap{flex:1;overflow-y:auto;padding:10px 12px 130px}
+.det-card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;flex-shrink:0}
+.det-stripe{height:5px;background:#1a56db}
+.det-stripe.done-clr{background:#16a34a}
+.det-stripe.fail-clr{background:#dc2626}
+.det-inner{padding:10px 12px}
+.det-addr{font-size:15px;font-weight:700;color:#1a2332;margin-bottom:6px;line-height:1.3}
+.det-row{font-size:13px;color:#4a5568;margin-bottom:4px;display:flex;align-items:flex-start;gap:6px}
+.det-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:3px}
+.det-note{padding:8px 12px;background:#fffbeb;border-left:4px solid #f59e0b;font-size:12px;color:#92400e;border-radius:0 0 14px 14px}
+.det-status-bar{padding:6px 14px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;margin-bottom:6px;flex-shrink:0}
+.det-status-bar.done{background:#dcfce7;color:#16a34a}
+.det-status-bar.fail{background:#fee2e2;color:#dc2626}
+
+/* ACTION BUTTONS */
+.act-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:fixed;bottom:0;left:0;right:0;padding:10px 12px 20px;background:#eef1f7;z-index:10}
+.act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:#fff;-webkit-tap-highlight-color:transparent}
+.act-btn:active{transform:scale(0.95);opacity:.9}
+.act-done{background:#16a34a}
+.act-fail{background:#dc2626}
+.act-call{background:#1a56db}
+.act-back{background:#64748b}
+.act-toggle-done{background:#dc2626}
+.act-toggle-fail{background:#16a34a}
+.act-icon{font-size:26px;line-height:1}
+
+/* FAIL REASON MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;padding:20px 16px 32px;max-height:75vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:#1a2332;margin-bottom:14px;text-align:center}
+.reason-item{padding:13px 16px;border-radius:10px;background:#f4f7ff;margin-bottom:8px;font-size:14px;font-weight:600;color:#1a2332;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.reason-item:active{background:#e8f0fe}
+.reason-cancel{padding:13px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:14px;font-weight:700;text-align:center;cursor:pointer;margin-top:4px}
+
+/* PRODUCT / ADDR view */
+.prod-card{background:#fff;border-radius:12px;margin-bottom:8px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.05);display:flex;align-items:center;gap:12px}
+.prod-num{width:28px;height:28px;border-radius:8px;background:#e8f0fe;color:#1a56db;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prod-name{font-size:14px;font-weight:600;color:#1a2332}
+.prod-qty{margin-left:auto;font-size:13px;font-weight:700;color:#8a96a8}
+.addr-card{background:#fff;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.05);overflow:hidden;display:flex;align-items:center}
+.addr-num{width:36px;text-align:center;font-size:13px;font-weight:700;color:#1a56db;flex-shrink:0;padding:14px 0}
+.addr-info{flex:1;padding:12px 8px 12px 0}
+.addr-main{font-size:14px;font-weight:600;color:#1a2332}
+.addr-sub{font-size:12px;color:#4a5568;margin-top:2px}
+.addr-dist{display:inline-block;padding:2px 8px;border-radius:20px;background:#e8f0fe;color:#1a56db;font-size:11px;font-weight:700;margin-left:6px}
+.addr-drag{padding:0 14px;cursor:grab;touch-action:none;color:#d0d5e0;font-size:24px;font-weight:300}
+.addr-card.drag-over{border-top:3px solid #1a56db}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2332;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{display:block}
+.tg{background:#16a34a}
+.tr{background:#dc2626}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="loginPage">
+  <div class="logo">&#x1F69A;</div>
+  <div class="title">&#x425;&#x4AF;&#x440;&#x433;&#x44D;&#x43B;&#x442;</div>
+  <div class="sub">&#x416;&#x43E;&#x43B;&#x43E;&#x43E;&#x447;&#x438;&#x439;&#x43D; &#x430;&#x43F;&#x43F;</div>
+  <div class="card" id="step-phone">
+    <label for="ph">&#x423;&#x442;&#x430;&#x441;&#x43D;&#x44B; &#x434;&#x443;&#x433;&#x430;&#x430;&#x440;&#x430;&#x430; &#x43E;&#x440;&#x443;&#x443;&#x43B;&#x43D;&#x430; &#x443;&#x443;</label>
+    <input type="tel" id="ph" placeholder="99001234" maxlength="8"/>
+    <button class="btn" id="loginBtn">&#x41D;&#x44D;&#x432;&#x442;&#x440;&#x44D;&#x445;</button>
+    <div class="err" id="errEl"></div>
+  </div>
+  <div class="card" id="step-pin" style="display:none">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;margin-bottom:8px">&#x1F512;</div>
+      <div style="font-size:15px;font-weight:700;color:#1a2332" id="pin-title"></div>
+      <div style="font-size:13px;color:#8a96a8;margin-top:4px" id="pin-sub"></div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:14px;margin-bottom:24px">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="numpad">
+      <button class="npbtn" onclick="pinInput('1')">1</button>
+      <button class="npbtn" onclick="pinInput('2')">2</button>
+      <button class="npbtn" onclick="pinInput('3')">3</button>
+      <button class="npbtn" onclick="pinInput('4')">4</button>
+      <button class="npbtn" onclick="pinInput('5')">5</button>
+      <button class="npbtn" onclick="pinInput('6')">6</button>
+      <button class="npbtn" onclick="pinInput('7')">7</button>
+      <button class="npbtn" onclick="pinInput('8')">8</button>
+      <button class="npbtn" onclick="pinInput('9')">9</button>
+      <button class="npbtn" style="background:transparent;border:none;font-size:14px;color:#6b7a8d" onclick="backPhone()">&#x2190; &#x422;&#x443;&#x445;&#x430;&#x439;</button>
+      <button class="npbtn" onclick="pinInput('0')">0</button>
+      <button class="npbtn" style="color:#b91c1c;border-color:#fee2e2" onclick="pinDel()">&#x232B;</button>
+    </div>
+    <div class="err" id="errPin" style="margin-top:12px"></div>
+    <div id="forgotBtn" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;background:#fff8e1;border:1.5px solid #f59e0b;color:#92400e;font-size:13px;font-weight:600;text-align:center">
+      &#x26A0;&#xFE0F; PIN &#x43C;&#x430;&#x440;&#x442;&#x441;&#x430;&#x43D; &#x431;&#x43E;&#x43B; &#x43C;&#x435;&#x43D;&#x435;&#x436;&#x435;&#x440;&#x442;&#x44D;&#x44D; &#x445;&#x430;&#x43D;&#x434;&#x430;&#x43D;&#x430; &#x443;&#x443;
+    </div>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="app" id="appPage">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="av" id="avEl"></div>
+        <div><div class="dname" id="nameEl"></div><div class="dph" id="phEl"></div></div>
+      </div>
+      <button class="obtn" id="logoutBtn">&#x413;&#x430;&#x440;&#x430;&#x445;</button>
+    </div>
+    <div class="dnav">
+      <button class="nbtn" id="prevBtn">&#8249;</button>
+      <span class="dlbl" id="dateEl"></span>
+      <button class="nbtn" id="nextBtn">&#8250;</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="sbox"><div class="sn" id="sT">0</div><div class="sl">&#x41D;&#x438;&#x439;&#x442;</div></div>
+    <div class="sbox"><div class="sn" style="color:#16a34a" id="sDo">0</div><div class="sl">&#x425;&#x4AF;&#x440;&#x433;&#x44D;&#x441;&#x44D;&#x43D;</div></div>
+    <div class="sbox"><div class="sn" style="color:#dc2626" id="sFa">0</div><div class="sl">&#x410;&#x43C;&#x436;&#x438;&#x43B;&#x442;&#x433;&#x4AF;&#x439;</div></div>
+    <div class="sbox"><div class="sn" style="color:#f59e0b" id="sPe">0</div><div class="sl">&#x425;&#x4AF;&#x43B;&#x44D;&#x44D;&#x43B;&#x442;</div></div>
+  </div>
+  <div id="warnBar"></div>
+  <div class="vswitch">
+    <button class="vbtn active" id="vAll" onclick="setView('all')">&#x1F4CB; &#x41D;&#x438;&#x439;&#x442;</button>
+    <button class="vbtn" id="vProd" onclick="setView('product')">&#x1F4E6; &#x411;&#x430;&#x440;&#x430;&#x430;</button>
+    <button class="vbtn" id="vAddr" onclick="setView('address')">&#x1F4CD; &#x425;&#x430;&#x44F;&#x433;</button>
+  </div>
+  <div class="owrap" id="owrap"></div>
+</div>
+
+<!-- DETAIL VIEW -->
+<div class="detail" id="detailPage">
+  <div class="det-hdr">
+    <button class="det-back" id="detBackBtn">&#x2190;</button>
+    <div class="det-title" id="detTitle"></div>
+    <div class="det-ord-num" id="detOrdNum"></div>
+  </div>
+  <div class="det-body-wrap">
+    <div>
+      <div id="detStatusBar"></div>
+      <div class="det-card" id="detCard">
+        <div class="det-stripe" id="detStripe"></div>
+        <div class="det-inner">
+          <div class="det-addr" id="detAddr"></div>
+          <div class="det-row" id="detPhone"></div>
+          <div class="det-row" id="detProduct"></div>
+          <div id="detBadge"></div>
+        </div>
+        <div id="detNote"></div>
+      </div>
+    </div>
+    <div class="act-wrap" id="actWrap"></div>
+  </div>
+</div>
+
+<!-- FAIL REASON MODAL -->
+<div class="modal-overlay" id="failModal">
+  <div class="modal-box">
+    <div class="modal-title">&#x274C; &#x410;&#x43C;&#x436;&#x438;&#x43B;&#x442;&#x433;&#x4AF;&#x439; &#x431;&#x43E;&#x43B;&#x441;&#x43E;&#x43D; &#x448;&#x430;&#x43B;&#x442;&#x433;&#x430;&#x430;&#x43D; &#x441;&#x43E;&#x43D;&#x433;&#x43E;&#x43D;&#x43E; &#x443;&#x443;</div>
+    <div id="reasonList"></div>
+    <div class="reason-cancel" onclick="closeFailModal()">&#x426;&#x443;&#x446;&#x43B;&#x430;&#x445;</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SB_URL='https://lgnjvltiqtnhpqdvpihq.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE';
+var driver=null,curDate=new Date(),orders=[],addrOrder=[],curView='all',curOrder=null;
+var lastWorkDate=null; // хамгийн сүүлд ажилласан өдөр (өнөөдрөөс өмнөх)
+
+var SM={info:'\u041C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0430\u0432\u0441\u0430\u043D',pending:'\u0425\u04AF\u043B\u044D\u044D\u043B\u0442\u044D\u043D\u0434',assigned:'\u0425\u0443\u0432\u0430\u0430\u0440\u0438\u043B\u0430\u0433\u0434\u0441\u0430\u043D',in_transit:'\u042F\u0432\u0436 \u0431\u0430\u0439\u043D\u0430',delivered:'\u0410\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439',partial:'\u0425\u044D\u0441\u044D\u0433\u0447\u043B\u044D\u043D',failed:'\u0410\u043C\u0436\u0438\u043B\u0442\u0433\u04AF\u0439',returned:'\u0411\u0443\u0446\u0430\u0430\u043B\u0442'};
+var DONE_ST=['delivered','failed','returned'];
+
+var FAIL_REASONS=[
+  '\u041C\u04E9\u043D\u0433\u04E9 \u043D\u044C \u043E\u0440\u043E\u043E\u0433\u04AF\u0439',
+  '\u0423\u0442\u0441\u0430\u0430 \u0430\u0432\u0430\u0430\u0433\u04AF\u0439',
+  '\u041C\u0430\u0440\u0433\u0430\u0430\u0448 \u0430\u0432\u043D\u0430',
+  '\u0425\u044D\u0441\u044D\u0433\u0447\u0438\u043B\u0436 \u0445\u04AF\u0440\u0433\u044D\u0441\u044D\u043D',
+  '\u0421\u043E\u043B\u044C\u0441\u043E\u043D',
+  '\u0411\u0443\u0446\u0430\u0430\u0441\u0430\u043D',
+  '\u0411\u0430\u0440\u0430\u0430 \u043D\u044C \u0430\u0433\u0443\u0443\u043B\u0430\u0445\u0430\u0434 \u0431\u0430\u0439\u0433\u0430\u0430\u0433\u04AF\u0439',
+  '\u0425\u0430\u044F\u0433 \u0434\u0430\u0432\u0445\u0430\u0446\u0441\u0430\u043D',
+  '\u0423\u0442\u0430\u0441 \u043D\u044C \u0445\u043E\u043B\u0431\u043E\u0433\u0434\u043E\u0445 \u0431\u043E\u043B\u043E\u043C\u0436\u0433\u04AF\u0439',
+  '\u0411\u0430\u0440\u0430\u0430 \u044D\u0432\u0434\u0440\u044D\u043B\u0442\u044D\u0439',
+  '\u0410\u0432\u0430\u0445\u0430\u0430 \u0431\u043E\u043B\u044C\u0441\u043E\u043D\u043E\u043E \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0442 \u043C\u044D\u0434\u044D\u0433\u0434\u0441\u044D\u043D',
+  '\u041E\u0447\u0441\u043E\u043D\u044B \u0434\u0430\u0440\u0430\u0430 \u0430\u0432\u0430\u0445\u0430\u0430 \u0431\u043E\u043B\u044C\u0441\u043E\u043D',
+  '\u0413\u043E\u043B\u0441\u043E\u043D',
+  '\u0426\u0430\u0433\u0442\u0430\u0430 \u0430\u043C\u0436\u0430\u0430\u0433\u04AF\u0439',
+  '\u0417\u0430\u0445\u0438\u0430\u043B\u0441\u0430\u043D \u04E9\u043D\u0433\u04E9 \u0431\u0430\u0439\u0445\u0433\u04AF\u0439',
+  '\u0420\u0430\u0437\u043C\u0435\u0440 \u0442\u0430\u0430\u0440\u0430\u0430\u0433\u04AF\u0439',
+  '\u0425\u043E\u0439\u0448\u043B\u0443\u0443\u043B\u0441\u0430\u043D',
+  '\u0411\u0430\u0440\u0430\u0430\u043D\u044B \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0431\u0443\u0440\u0443\u0443',
+  '\u0414\u0443\u0433\u0430\u0430\u0440 \u0431\u0443\u0440\u0443\u0443'
+];
+
+function sbGet(table,params){
+  var qs=Object.keys(params).map(function(k){return k+'=eq.'+encodeURIComponent(params[k]);}).join('&');
+  return fetch(SB_URL+'/rest/v1/'+table+'?'+qs+'&order=created_at.asc',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json();});
+}
+function sbGetCustom(path){
+  return fetch(SB_URL+'/rest/v1/'+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(r){return r.json();});
+}
+function sbPatch(table,id,data){
+  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)});
+}
+function pad(n){return('0'+n).slice(-2);}
+function toISO(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function fmtDate(d){
+  var days=['\u041D\u044F','\u0414\u0430','\u041C\u044F','\u041B\u0445','\u041F\u04AF','\u0411\u0430','\u0411\u044F'];
+  var m=['1','\u0032','\u0033','\u0034','\u0035','\u0036','\u0037','\u0038','\u0039','\u0031\u0030','\u0031\u0031','\u0031\u0032'];
+  return days[d.getDay()]+', '+d.getDate()+'. '+m[d.getMonth()]+' \u0441\u0430\u0440';
+}
+function showErr(msg){var e=document.getElementById('errEl');e.textContent=msg;e.style.display=msg?'block':'none';}
+function toast(msg,cls){var el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+(cls||'');setTimeout(function(){el.className='toast';},3000);}
+
+// ===== PIN =====
+var pinBuffer='',pinMode='',pinNew1='',pendingDriver=null;
+function getPK(id){return 'pin_'+id;}
+function updateDots(){for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);d.className='pin-dot'+(i<pinBuffer.length?' filled':'');}}
+function pinInput(n){if(pinBuffer.length>=4)return;pinBuffer+=n;updateDots();if(pinBuffer.length===4)setTimeout(handlePin,180);}
+function pinDel(){if(pinBuffer.length>0){pinBuffer=pinBuffer.slice(0,-1);updateDots();}}
+function pinShake(){for(var i=0;i<4;i++)document.getElementById('pd'+i).className='pin-dot error';setTimeout(function(){pinBuffer='';updateDots();},700);}
+function showPin(mode,d){
+  pendingDriver=d;pinMode=mode;pinBuffer='';pinNew1='';updateDots();
+  document.getElementById('step-phone').style.display='none';
+  document.getElementById('step-pin').style.display='block';
+  document.getElementById('errPin').style.display='none';
+  document.getElementById('forgotBtn').style.display='none';
+  if(mode==='new'){document.getElementById('pin-title').textContent='\u0428\u0438\u043D\u044D PIN \u04AF\u04AF\u0441\u0433\u044D\u0445';document.getElementById('pin-sub').textContent='4 \u043E\u0440\u043E\u043D\u0442\u043E\u0439 PIN \u043A\u043E\u0434 \u0442\u043E\u0445\u0438\u0439\u043D\u043E';}
+  else{document.getElementById('pin-title').textContent='PIN \u043E\u0440\u0443\u0443\u043B\u043D\u0430 \u0443\u0443';document.getElementById('pin-sub').textContent=d.name||'';}
+}
+function handlePin(){
+  var stored=localStorage.getItem(getPK(pendingDriver.id));
+  if(pinMode==='verify'){
+    if(pinBuffer===stored){driver=pendingDriver;localStorage.setItem('ds',JSON.stringify(driver));showApp();}
+    else{document.getElementById('errPin').textContent='\u0411\u0443\u0440\u0443\u0443 PIN. \u0414\u0430\u0445\u0438\u043D \u043E\u0440\u043E\u043B\u0434\u043E\u043D\u043E \u0443\u0443.';document.getElementById('errPin').style.display='block';document.getElementById('forgotBtn').style.display='block';pinShake();}
+  }else{
+    if(pinNew1===''){pinNew1=pinBuffer;pinBuffer='';updateDots();document.getElementById('pin-title').textContent='\u0414\u0430\u0432\u0442\u0430\u043D\u0430 \u043E\u0440\u0443\u0443\u043B\u043D\u0430 \u0443\u0443';document.getElementById('pin-sub').textContent='\u0414\u0430\u0432\u0442\u0430\u043D\u0430 \u043E\u0440\u0443\u0443\u043B\u043D\u0430';}
+    else if(pinBuffer===pinNew1){localStorage.setItem(getPK(pendingDriver.id),pinBuffer);driver=pendingDriver;localStorage.setItem('ds',JSON.stringify(driver));showApp();}
+    else{document.getElementById('errPin').textContent='PIN \u0442\u0430\u0430\u0440\u0430\u0445\u0433\u04AF\u0439. \u0414\u0430\u0445\u0438\u043D \u043E\u0440\u043E\u043B\u0434\u043E\u043D\u043E.';document.getElementById('errPin').style.display='block';pinNew1='';pinShake();setTimeout(function(){document.getElementById('pin-title').textContent='\u0428\u0438\u043D\u044D PIN \u04AF\u04AF\u0441\u0433\u044D\u0445';document.getElementById('pin-sub').textContent='4 \u043E\u0440\u043E\u043D\u0442\u043E\u0439 PIN';},800);}
+  }
+}
+function backPhone(){
+  pinBuffer='';pinNew1='';pinMode='';pendingDriver=null;
+  var p=new URLSearchParams(window.location.search).get('phone');
+  if(p){window.location.href='index.html';return;}
+  document.getElementById('step-pin').style.display='none';
+  document.getElementById('step-phone').style.display='block';
+}
+
+// ===== LOGIN =====
+function doDriverLogin(phone){
+  showErr('');
+  if(!phone||phone.length<8){showErr('Утасны дугаараа оруулна уу!');return;}
+  var btn=document.getElementById('loginBtn');
+  btn.textContent='...';btn.disabled=true;
+  sbGet('drivers',{phone:phone}).then(function(data){
+    btn.textContent='Нэвтрэх';btn.disabled=false;
+    if(!data||data.length===0){showErr('Утасны дугаар олдсонгүй.');return;}
+    if(data.message){showErr('Алдаа: '+data.message);return;}
+    var found=data[0];
+    sbGet('drivers',{id:found.id}).then(function(d2){
+      var fresh=(d2&&d2[0])?d2[0]:found;
+      var stored=localStorage.getItem(getPK(fresh.id));
+      if(fresh.pin_reset){localStorage.removeItem(getPK(fresh.id));stored=null;}
+      showPin(stored?'verify':'new',fresh);
+    }).catch(function(){showPin(localStorage.getItem(getPK(found.id))?'verify':'new',found);});
+  }).catch(function(e){btn.textContent='Нэвтрэх';btn.disabled=false;showErr('Алдаа: '+e.message);});
+}
+document.getElementById('loginBtn').onclick=function(){
+  doDriverLogin(document.getElementById('ph').value.trim());
+};
+// URL-аас phone авч автоматаар login хийх (index.html-ээс PIN шалгасны дараа)
+(function(){
+  var p=new URLSearchParams(window.location.search).get('phone');
+  if(p){
+    // index.html дээр PIN аль хэдийн шалгасан тул шуудхан DB-ээс мэдээлэл авч app харуулна
+    document.getElementById('loginPage').style.display='none';
+    var _url='https://lgnjvltiqtnhpqdvpihq.supabase.co';
+    var _key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnbmp2bHRpcXRuaHBxZHZwaWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzE4ODMsImV4cCI6MjA4NzE0Nzg4M30.F_B1FKATIEMYfbMtEh1gRmN6jUonT9u1spG3xonMKfE';
+    fetch(_url+'/rest/v1/drivers?phone=eq.'+encodeURIComponent(p),{headers:{'apikey':_key,'Authorization':'Bearer '+_key}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data&&data.length>0&&!data.message){
+        driver=data[0];
+        localStorage.setItem('ds',JSON.stringify(driver));
+        showApp();
+      } else {
+        document.getElementById('loginPage').style.display='flex';
+      }
+    }).catch(function(){document.getElementById('loginPage').style.display='flex';});
+  }
+})();
+
+// ===== NAVIGATION =====
+document.getElementById('logoutBtn').onclick=function(){
+  localStorage.removeItem('ds');driver=null;
+  window.location.href='index.html';
+};
+
+document.getElementById('prevBtn').onclick=function(){
+  // Зөвхөн lastWorkDate хүртэл буцаж болно
+  var target=new Date(curDate.getTime()-86400000);
+  if(lastWorkDate){
+    var targetISO=toISO(target);
+    var lastISO=toISO(lastWorkDate);
+    if(targetISO<lastISO)return; // цааш буцаж болохгүй
+  }
+  curDate=target;
+  document.getElementById('dateEl').textContent=fmtDate(curDate);
+  updateNavBtns();
+  loadOrders();
+};
+
+document.getElementById('nextBtn').onclick=function(){
+  var today=new Date();today.setHours(0,0,0,0);
+  var target=new Date(curDate.getTime()+86400000);
+  if(target>today)return; // өнөөдрөөс хэтрэхгүй
+  curDate=target;
+  document.getElementById('dateEl').textContent=fmtDate(curDate);
+  updateNavBtns();
+  loadOrders();
+};
+
+document.getElementById('detBackBtn').onclick=function(){showList();};
+
+function updateNavBtns(){
+  var today=new Date();today.setHours(0,0,0,0);
+  var nextTarget=new Date(curDate.getTime()+86400000);
+  document.getElementById('nextBtn').disabled=nextTarget>today;
+  if(lastWorkDate){
+    var prevTarget=new Date(curDate.getTime()-86400000);
+    document.getElementById('prevBtn').disabled=toISO(prevTarget)<toISO(lastWorkDate);
+  }
+}
+
+// ===== APP =====
+function showApp(){
+  if(driver&&driver.pin_reset){sbPatch('drivers',driver.id,{pin_reset:false}).catch(function(){});driver.pin_reset=false;localStorage.setItem('ds',JSON.stringify(driver));}
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('appPage').style.display='block';
+  document.getElementById('detailPage').style.display='none';
+  var ini=(driver.name||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  document.getElementById('avEl').textContent=ini;
+  document.getElementById('nameEl').textContent=driver.name;
+  document.getElementById('phEl').textContent=driver.phone||'';
+  curDate=new Date();curDate.setHours(0,0,0,0);
+  // Хамгийн сүүлд ажилласан өдрийг олно
+  fetchLastWorkDate().then(function(){
+    document.getElementById('dateEl').textContent=fmtDate(curDate);
+    updateNavBtns();
+    loadOrders();
+  });
+}
+
+function fetchLastWorkDate(){
+  // driver-ийн өнөөдрөөс өмнөх хамгийн сүүлийн захиалгатай өдрийг олно
+  var today=toISO(new Date());
+  return sbGetCustom('orders?driver_id=eq.'+driver.id+'&order_date=lt.'+today+'&select=order_date&order=order_date.desc&limit=1')
+    .then(function(data){
+      if(data&&data.length>0){
+        var d=new Date(data[0].order_date+'T00:00:00');
+        lastWorkDate=d;
+      } else {
+        lastWorkDate=null;
+      }
+    }).catch(function(){lastWorkDate=null;});
+}
+
+function showList(){
+  document.getElementById('detailPage').style.display='none';
+  document.getElementById('appPage').style.display='block';
+  renderView();
+}
+
+function loadOrders(){
+  document.getElementById('owrap').innerHTML='<div style="text-align:center;padding:40px;color:#aab3c0">...</div>';
+  document.getElementById('warnBar').innerHTML='';
+  sbGet('orders',{driver_id:driver.id,order_date:toISO(curDate)}).then(function(data){
+    if(data&&data.message){toast('\u0410\u043B\u0434\u0430\u0430: '+data.message,'tr');return;}
+    orders=data||[];addrOrder=[];
+    updateStats();
+    // Өмнөх өдрийн дутуу захиалга шалгах (өнөөдрийн захиалга харж байгаа үед)
+    var today=new Date();today.setHours(0,0,0,0);
+    if(toISO(curDate)===toISO(today)&&lastWorkDate){
+      checkPrevDayIncomplete();
+    }
+    renderView();
+  }).catch(function(){toast('\u0425\u043E\u043B\u0431\u043E\u043B\u0434\u043E\u043D\u044B \u0430\u043B\u0434\u0430\u0430','tr');});
+}
+
+function checkPrevDayIncomplete(){
+  if(!lastWorkDate)return;
+  sbGet('orders',{driver_id:driver.id,order_date:toISO(lastWorkDate)}).then(function(data){
+    if(!data||!data.length)return;
+    var incomplete=data.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+    if(incomplete.length>0){
+      var bar=document.getElementById('warnBar');
+      var d=document.createElement('div');
+      d.className='warn-bar';
+      d.textContent='\u26A0\uFE0F '+fmtDate(lastWorkDate)+'\u043D \u04E9\u0434\u0440\u0438\u0439\u043D '+incomplete.length+' \u0437\u0430\u0445\u0438\u0430\u043B\u0433\u0430\u043D\u044B \u0441\u0442\u0430\u0442\u0443\u0441\u0430\u0430 \u0431\u04AF\u0440\u044D\u043D \u0431\u043E\u043B\u0433\u043E\u043D\u043E \u0443\u0443';
+      bar.appendChild(d);
+    }
+  }).catch(function(){});
+}
+
+function updateStats(){
+  document.getElementById('sT').textContent=orders.length;
+  document.getElementById('sDo').textContent=orders.filter(function(o){return o.status==='delivered';}).length;
+  document.getElementById('sFa').textContent=orders.filter(function(o){return o.status==='failed';}).length;
+  document.getElementById('sPe').textContent=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;}).length;
+}
+
+// ===== VIEWS =====
+function setView(v){
+  curView=v;
+  ['vAll','vProd','vAddr'].forEach(function(id){document.getElementById(id).classList.remove('active');});
+  document.getElementById(v==='all'?'vAll':v==='product'?'vProd':'vAddr').classList.add('active');
+  if(v==='all'&&addrOrder.length>0)applyAddrOrder();
+  renderView();
+}
+function applyAddrOrder(){
+  var active=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+  var done=orders.filter(function(o){return DONE_ST.indexOf(o.status)>=0;});
+  if(addrOrder.length===active.length){
+    var sorted=addrOrder.map(function(id){return active.find(function(o){return o.id===id;});}).filter(Boolean);
+    if(sorted.length===active.length)orders=sorted.concat(done);
+  }
+}
+function renderView(){
+  if(curView==='product')renderProductView();
+  else if(curView==='address')renderAddressView();
+  else renderOrders();
+}
+
+function getDisplayOrder(){
+  // active захиалгуудын харуулах дараалал (addrOrder-оос авна)
+  var active=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+  var done=orders.filter(function(o){return DONE_ST.indexOf(o.status)>=0;});
+  if(addrOrder.length===active.length){
+    var sorted=addrOrder.map(function(id){return active.find(function(o){return o.id===id;});}).filter(Boolean);
+    if(sorted.length===active.length)return sorted.concat(done);
+  }
+  return active.concat(done);
+}
+
+function getOrderDisplayNum(orderId){
+  var list=getDisplayOrder();
+  for(var i=0;i<list.length;i++){if(list[i].id===orderId)return i+1;}
+  return null;
+}
+
+function renderOrders(){
+  var wrap=document.getElementById('owrap');wrap.innerHTML='';
+  if(!orders.length){wrap.innerHTML='<div class="empty"><div style="font-size:48px">&#x1F4EB;</div><p>\u04E8\u043D\u04E9\u04E9\u0434\u04E9\u0440 \u0437\u0430\u0445\u0438\u0430\u043B\u0433\u0430 \u0431\u0430\u0439\u0445\u0433\u04AF\u0439</p></div>';return;}
+  var list=getDisplayOrder();
+  list.forEach(function(o,i){wrap.appendChild(buildCard(o,i+1));});
+}
+
+function buildCard(o,num){
+  var isDone=DONE_ST.indexOf(o.status)>=0;
+  var card=document.createElement('div');
+  card.className='oc'+(isDone?' done':'');
+  card.style.position='relative';
+
+  var stripe=document.createElement('div');
+  stripe.className='oc-stripe'+(o.status==='delivered'?' done-clr':o.status==='failed'?' fail-clr':'');
+  card.appendChild(stripe);
+
+  var body=document.createElement('div');
+  body.className='oc-body';
+  body.style.display='flex';
+  body.style.alignItems='flex-start';
+  body.style.gap='10px';
+
+  // Дугаар
+  var numEl=document.createElement('div');
+  numEl.className='oc-num'+(o.status==='delivered'?' done-num':o.status==='failed'?' fail-num':'');
+  numEl.textContent=num;
+  body.appendChild(numEl);
+
+  var info=document.createElement('div');
+  info.style.flex='1';
+
+  var addr=document.createElement('div');
+  addr.className='oc-addr';
+  addr.textContent=o.address||'\u2014';
+  if(o.product_name){
+    var pspan=document.createElement('span');
+    pspan.style.cssText='font-size:12px;color:#6b7a8d;font-weight:500;margin-left:4px';
+    pspan.textContent='('+o.product_name+')';
+    addr.appendChild(pspan);
+  }
+  info.appendChild(addr);
+
+  // Утас + тайлбар нэг мөрт
+  var meta=document.createElement('div');
+  meta.className='oc-meta';
+  var metaText=o.customer_phone||'';
+  if(o.note)metaText+=(metaText?' | ':'')+o.note;
+  meta.textContent=metaText;
+  info.appendChild(meta);
+
+  // Дүүрэг + статус
+  var row=document.createElement('div');
+  row.style.display='flex';row.style.alignItems='center';row.style.gap='6px';row.style.marginTop='3px';
+  if(o.district){var ds=document.createElement('span');ds.className='oc-dist';ds.textContent=o.district;row.appendChild(ds);}
+  var st=document.createElement('span');
+  st.className='oc-status '+(o.status==='delivered'?'st-delivered':o.status==='failed'?'st-failed':'st-assigned');
+  st.textContent=SM[o.status]||o.status;
+  row.appendChild(st);
+  info.appendChild(row);
+
+  body.appendChild(info);
+  var arrow=document.createElement('div');
+  arrow.className='oc-arrow';arrow.textContent='›';
+  body.appendChild(arrow);
+
+  card.appendChild(body);
+  card.onclick=function(){openDetail(o.id);};
+  return card;
+}
+
+// ===== DETAIL VIEW =====
+function openDetail(id){
+  curOrder=null;
+  for(var i=0;i<orders.length;i++){if(orders[i].id===id){curOrder=orders[i];break;}}
+  if(!curOrder)return;
+  var o=curOrder;
+  var isDone=DONE_ST.indexOf(o.status)>=0;
+  var num=getOrderDisplayNum(id);
+
+  document.getElementById('appPage').style.display='none';
+  document.getElementById('detailPage').style.display='flex';
+
+  document.getElementById('detTitle').textContent=o.product_name||'\u0417\u0430\u0445\u0438\u0430\u043B\u0433\u0430';
+  document.getElementById('detOrdNum').textContent=num||'';
+
+  var stripe=document.getElementById('detStripe');
+  stripe.className='det-stripe'+(o.status==='delivered'?' done-clr':o.status==='failed'?' fail-clr':'');
+
+  document.getElementById('detAddr').textContent=o.address||(o.district||'');
+
+  // Утас
+  var phEl=document.getElementById('detPhone');
+  if(o.customer_phone){
+    phEl.innerHTML='&#x1F4DE; <a href="tel:'+o.customer_phone+'" style="color:#1a56db;font-weight:700;text-decoration:none">'+o.customer_phone+'</a>'+(o.note?'<span style="color:#92400e;margin-left:8px;font-style:italic">'+o.note+'</span>':'');
+  } else {
+    phEl.textContent=o.note||'';
+  }
+
+  // Бараа (📦 тэмдэгтгүй)
+  var prodEl=document.getElementById('detProduct');
+  if(o.product_name){
+    prodEl.innerHTML='&#x1F4E6; '+o.product_name;
+  } else prodEl.textContent='';
+
+  // Дүүрэг badge
+  var badgeEl=document.getElementById('detBadge');
+  var bc=o.status==='delivered'?'st-delivered':o.status==='failed'?'st-failed':'st-assigned';
+  var distText=o.district?'<span class="oc-dist" style="margin-right:6px">'+o.district+'</span>':'';
+  badgeEl.innerHTML=distText+'<span class="oc-status '+bc+'">'+(SM[o.status]||o.status)+'</span>';
+
+  // Тайлбар (detail дотор харуулахгүй — list-д харуулдаг болсон)
+  document.getElementById('detNote').innerHTML='';
+
+  // Статус бар
+  var sb2=document.getElementById('detStatusBar');
+  if(o.status==='delivered'){sb2.className='det-status-bar done';sb2.textContent='\u2705 \u0410\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439 \u0445\u04AF\u0440\u0433\u044D\u0433\u0434\u0441\u044D\u043D';}
+  else if(o.status==='failed'){sb2.className='det-status-bar fail';sb2.textContent='\u274C \u0425\u04AF\u0440\u0433\u044D\u0436 \u0447\u0430\u0434\u0430\u0430\u0433\u04AF\u0439';}
+  else{sb2.className='';sb2.textContent='';}
+
+  renderActBtns(o);
+}
+
+function renderActBtns(o){
+  var wrap=document.getElementById('actWrap');
+  wrap.innerHTML='';
+  var isDone=DONE_ST.indexOf(o.status)>=0;
+
+  var back=document.createElement('button');
+  back.className='act-btn act-back';
+  back.innerHTML='<span class="act-icon">&#x2190;</span>\u0411\u0443\u0446\u0430\u0445';
+  back.onclick=function(){showList();};
+
+  var call=document.createElement('button');
+  call.className='act-btn act-call';
+  call.innerHTML='<span class="act-icon">&#x1F4DE;</span>\u0417\u0430\u043B\u0433\u0430\u0445';
+  if(o.customer_phone)call.onclick=function(){window.location.href='tel:'+o.customer_phone;};
+  else{call.style.opacity='.4';call.disabled=true;}
+
+  if(!isDone){
+    var done=document.createElement('button');
+    done.className='act-btn act-done';
+    done.innerHTML='<span class="act-icon">&#x2705;</span>\u0410\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439';
+    done.onclick=function(){setSt(o.id,'delivered');};
+
+    var fail=document.createElement('button');
+    fail.className='act-btn act-fail';
+    fail.innerHTML='<span class="act-icon">&#x274C;</span>\u0410\u043C\u0436\u0438\u043B\u0442\u0433\u04AF\u0439';
+    fail.onclick=function(){openFailModal(o.id);};
+
+    wrap.appendChild(done);
+    wrap.appendChild(fail);
+    wrap.appendChild(call);
+    wrap.appendChild(back);
+  } else {
+    // Дуусгасан ч дахиад өөрчлөх боломжтой
+    if(o.status==='delivered'){
+      var toFail=document.createElement('button');
+      toFail.className='act-btn act-toggle-done';
+      toFail.innerHTML='<span class="act-icon">&#x274C;</span>\u0410\u043C\u0436\u0438\u043B\u0442\u0433\u04AF\u0439 \u0431\u043E\u043B\u0433\u043E\u0445';
+      toFail.onclick=function(){openFailModal(o.id);};
+      wrap.appendChild(toFail);
+    } else if(o.status==='failed'){
+      var toDone=document.createElement('button');
+      toDone.className='act-btn act-toggle-fail';
+      toDone.innerHTML='<span class="act-icon">&#x2705;</span>\u0410\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439 \u0431\u043E\u043B\u0433\u043E\u0445';
+      toDone.onclick=function(){setSt(o.id,'delivered');};
+      wrap.appendChild(toDone);
+    }
+    wrap.appendChild(call);
+    wrap.appendChild(back);
+  }
+}
+
+// ===== FAIL REASON MODAL =====
+var failTargetId=null;
+function openFailModal(id){
+  failTargetId=id;
+  var list=document.getElementById('reasonList');
+  list.innerHTML='';
+  FAIL_REASONS.forEach(function(r,idx){
+    var item=document.createElement('div');
+    item.className='reason-item';
+    item.textContent=r;
+    item.onclick=function(){selectFailReason(r,idx);};
+    list.appendChild(item);
+  });
+  document.getElementById('failModal').classList.add('show');
+}
+function closeFailModal(){
+  document.getElementById('failModal').classList.remove('show');
+  failTargetId=null;
+}
+function selectFailReason(reason,idx){
+  var targetId=failTargetId; // closeFailModal-с өмнө хадгална
+  closeFailModal();
+  if(idx===2){
+    var tomorrow=new Date(curDate.getTime()+86400000);
+    sbPatch('orders',targetId,{status:'failed',fail_reason:reason,order_date:toISO(tomorrow)}).then(function(){
+      orders=orders.filter(function(o){return o.id!==targetId;});
+      updateStats();showList();
+      toast('\u041C\u0430\u0440\u0433\u0430\u0430\u0448 \u0440\u0443\u0443 \u0448\u0438\u043B\u0436\u043B\u044D\u044D','tg');
+    }).catch(function(){toast('\u0410\u043B\u0434\u0430\u0430','tr');});
+  } else {
+    sbPatch('orders',targetId,{status:'failed',fail_reason:reason}).then(function(){
+      for(var i=0;i<orders.length;i++){if(orders[i].id===targetId){orders[i].status='failed';orders[i].fail_reason=reason;curOrder=orders[i];break;}}
+      updateStats();openDetail(targetId);
+      toast('\u274C \u0410\u043C\u0436\u0438\u043B\u0442\u0433\u04AF\u0439','tr');
+    }).catch(function(){toast('\u0410\u043B\u0434\u0430\u0430','tr');});
+  }
+}
+
+function setSt(id,status){
+  sbPatch('orders',id,{status:status}).then(function(){
+    for(var i=0;i<orders.length;i++){if(orders[i].id===id){orders[i].status=status;curOrder=orders[i];break;}}
+    updateStats();openDetail(id);
+    toast(status==='delivered'?'\u2705 \u0410\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439!':'\u274C \u0410\u043C\u0436\u0438\u043B\u0442\u0433\u04AF\u0439',status==='delivered'?'tg':'tr');
+  }).catch(function(){toast('\u0410\u043B\u0434\u0430\u0430','tr');});
+}
+
+function renderProductView(){
+  var wrap=document.getElementById('owrap');wrap.innerHTML='';
+  var active=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+  if(!active.length){wrap.innerHTML='<div class="empty"><div style="font-size:40px">&#x1F4E6;</div><p>\u0411\u0430\u0440\u0430\u0430 \u0431\u0430\u0439\u0445\u0433\u04AF\u0439</p></div>';return;}
+  var map={};active.forEach(function(o){var nm=o.product_name||'\u2014';map[nm]=(map[nm]||0)+1;});
+  var h=document.createElement('div');h.style.cssText='font-size:11px;font-weight:700;color:#8a96a8;padding:0 4px 10px';h.textContent='\u04E8\u043D\u04E9\u04E9\u0434\u04E9\u0440 \u0430\u0432\u0430\u0445 \u0431\u0430\u0440\u0430\u0430 \u2014 '+active.length+' \u0437\u0430\u0445\u0438\u0430\u043B\u0433\u0430';wrap.appendChild(h);
+  Object.keys(map).sort().forEach(function(nm,i){
+    var c=document.createElement('div');c.className='prod-card';
+    var n=document.createElement('div');n.className='prod-num';n.textContent=i+1;
+    var na=document.createElement('div');na.className='prod-name';na.textContent=nm;
+    var q=document.createElement('div');q.className='prod-qty';q.textContent=map[nm]>1?'x'+map[nm]:'';
+    c.appendChild(n);c.appendChild(na);c.appendChild(q);wrap.appendChild(c);
+  });
+}
+
+function renderAddressView(){
+  var wrap=document.getElementById('owrap');wrap.innerHTML='';
+  var active=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+  if(!active.length){wrap.innerHTML='<div class="empty"><div style="font-size:40px">&#x1F4CD;</div><p>\u0425\u0430\u044F\u0433 \u0431\u0430\u0439\u0445\u0433\u04AF\u0439</p></div>';return;}
+  if(addrOrder.length===active.length){var s=addrOrder.map(function(id){return active.find(function(o){return o.id===id;});}).filter(Boolean);if(s.length===active.length)active=s;}
+  var h=document.createElement('div');h.style.cssText='font-size:11px;font-weight:700;color:#8a96a8;padding:0 4px 10px';h.textContent='\u0414\u0430\u0440\u0430\u0430\u043B\u0430\u043B \u0447\u0438\u0440\u044D\u044D\u0440\u044D\u0439 \u0437\u04E9\u04E9\u0445 \u0431\u043E\u043B\u043D\u043E';wrap.appendChild(h);
+  active.forEach(function(o,i){
+    var c=document.createElement('div');c.className='addr-card';c.dataset.id=o.id;
+    var n=document.createElement('div');n.className='addr-num';n.textContent=i+1;
+    var inf=document.createElement('div');inf.className='addr-info';
+    var m=document.createElement('div');m.className='addr-main';m.textContent=o.address||'\u2014';
+    inf.appendChild(m);
+    var dh=document.createElement('div');dh.className='addr-drag';dh.innerHTML='&#x2630;';
+    c.appendChild(n);c.appendChild(inf);c.appendChild(dh);wrap.appendChild(c);
+  });
+  initAddrDrag();
+}
+
+function initAddrDrag(){
+  var cards=document.querySelectorAll('.addr-card');
+  var src=null;
+  cards.forEach(function(card){
+    var h=card.querySelector('.addr-drag');
+    h.addEventListener('touchstart',function(e){src=card;card.style.opacity='.4';e.preventDefault();},{passive:false});
+    h.addEventListener('touchmove',function(e){
+      e.preventDefault();var t=e.touches[0];
+      var el=document.elementFromPoint(t.clientX,t.clientY);
+      var target=el?el.closest('.addr-card'):null;
+      document.querySelectorAll('.addr-card.drag-over').forEach(function(c){c.classList.remove('drag-over');});
+      if(target&&target!==src)target.classList.add('drag-over');
+    },{passive:false});
+    h.addEventListener('touchend',function(){
+      var over=document.querySelector('.addr-card.drag-over');
+      if(over&&src&&over!==src){
+        var active=orders.filter(function(o){return DONE_ST.indexOf(o.status)<0;});
+        if(addrOrder.length!==active.length)addrOrder=active.map(function(o){return o.id;});
+        var all=Array.from(document.querySelectorAll('.addr-card'));
+        var fi=all.indexOf(src),ti=all.indexOf(over);
+        var mv=addrOrder.splice(fi,1)[0];addrOrder.splice(ti,0,mv);
+        renderAddressView();
+      }
+      if(src)src.style.opacity='';
+      document.querySelectorAll('.addr-card.drag-over').forEach(function(c){c.classList.remove('drag-over');});
+      src=null;
+    });
+  });
+}
+
+// fail_reason column байгаа эсэхийг шалгах — байхгүй бол нэмэх SQL хэрэгтэй
+// URL-аас phone уншиж автоматаар дүүргэх
+(function(){
+  var p=new URLSearchParams(window.location.search).get('phone');
+  if(p){var el=document.getElementById('ph');if(el)el.value=p;}
+})();
+
+var saved=localStorage.getItem('ds');
+if(saved){try{driver=JSON.parse(saved);showApp();}catch(e){localStorage.removeItem('ds');}}
+</script>
+</body>
+</html>
